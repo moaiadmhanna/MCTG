@@ -1,6 +1,6 @@
 namespace MCTG;
 
-public enum ElementType
+internal enum ElementType
 {
     Water,
     Fire,
