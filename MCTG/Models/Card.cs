@@ -1,6 +1,6 @@
 namespace MCTG;
 
-internal abstract class Card
+public abstract class Card
 {
     public string Name { get; protected set; }
     protected int Damage {get;}

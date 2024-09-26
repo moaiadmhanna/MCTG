@@ -1,6 +1,6 @@
 namespace MCTG;
 
-internal class Stack
+public class Stack
 {
    private List<Card> cards = new List<Card>();
 
