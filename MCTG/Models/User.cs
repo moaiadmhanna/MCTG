@@ -5,7 +5,7 @@ public class User
     public string UserName { get; private set; }
     public string Password { get; private set; }
     public Stack UserStack { get; } = new Stack();
-    public Card[] UserDeck { get; } = new Card[4];
+    public Deck UserDeck { get; } = new Deck();
     public double Coins { get; private set; }
     public double Elo { get; private set; }
 
@@ -16,4 +16,5 @@ public class User
         Coins = 20;
         Elo = 100;
     }
+    public void UpdateElo(double x) => Elo += x;
 }

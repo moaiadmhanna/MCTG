@@ -1,13 +1,20 @@
 namespace MCTG;
 
+enum TypeOfMonster
+{
+    Goblin,
+    Wizzard,
+    Dragon,
+    Knight,
+    Krake,
+    FireElves,
+    Ork
+}
 internal class MonsterCard : Card
 {
-    public MonsterCard(string name, int damage, ElementType elementType) : base(name, damage, elementType)
+    public TypeOfMonster Monster { get; private set;}
+    public MonsterCard(string name, int damage, ElementType elementType, TypeOfMonster monster) : base(name, damage, elementType)
     {
-    }
-
-    public override void attack()
-    {
-        
+        Monster = monster;
     }
 }

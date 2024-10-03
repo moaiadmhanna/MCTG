@@ -4,12 +4,12 @@ public class Stack
 {
    private List<Card> cards = new List<Card>();
 
-   public void addCardToStack(Card card)
+   public void AddCardToStack(Card card)
    {
       cards.Add(card);
    }
 
-   public void removeCardFromStack(Card card)
+   public void RemoveCardFromStack(Card card)
    {
       Console.WriteLine( cards.Remove(card) ? "Card removed Successfully" : "Card remove Failed");
    }

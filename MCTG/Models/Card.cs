@@ -3,8 +3,8 @@ namespace MCTG;
 public abstract class Card
 {
     public string Name { get; protected set; }
-    protected int Damage {get;}
-    protected ElementType Element { get; set; }
+    public int Damage  {get;}
+    public ElementType Element { get;}
 
     protected Card(string name, int damage, ElementType element)
     {
@@ -12,5 +12,4 @@ public abstract class Card
         Damage = damage;
         Element = element;
     }
-     public abstract void attack();
 }
