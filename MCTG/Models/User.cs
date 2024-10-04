@@ -17,4 +17,5 @@ public class User
         Elo = 100;
     }
     public void UpdateElo(double x) => Elo += x;
+    public void UpdateCoins(double x) => Coins += x;
 }

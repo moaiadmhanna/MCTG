@@ -25,7 +25,7 @@ class Program
         player2.UserDeck.AddCardToDeck(mcard4);
         player2.UserDeck.AddCardToDeck(scard4);
         player2.UserDeck.AddCardToDeck(scard3);
-        Battle battle = new Battle(player1, player2);
-        battle.StartBattle();
+        BattleService battleService = new BattleService(player1, player2);
+        battleService.StartBattle();
     }
 }

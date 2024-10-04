@@ -8,7 +8,7 @@ enum Effectiveness
     NoEffective,
     NotEffective
 }
-public class Battle
+public class BattleService
 {
     private User Player1 {get; set;}
     private User Player2 {get; set;}
@@ -17,7 +17,7 @@ public class Battle
     private const int Rounds = 100;
     private static int _currentRound = 1;
 
-    public Battle(User player1, User player2)
+    public BattleService(User player1, User player2)
     {
         Player1 = player1;
         Player2 = player2;
@@ -105,7 +105,7 @@ public class Battle
         {
             (TypeOfMonster.Goblin,TypeOfMonster.Dragon) => 0,
             (TypeOfMonster.Ork,TypeOfMonster.Wizzard) => 0,
-            (TypeOfMonster.Dragon,TypeOfMonster.FireElves) => 0,
+            (TypeOfMonster.Dragon,TypeOfMonster.FireElve) => 0,
             _ => card1.Damage
         };
     }

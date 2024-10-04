@@ -7,7 +7,7 @@ enum TypeOfMonster
     Dragon,
     Knight,
     Krake,
-    FireElves,
+    FireElve,
     Ork
 }
 internal class MonsterCard : Card
