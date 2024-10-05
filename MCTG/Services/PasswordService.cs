@@ -5,12 +5,10 @@ namespace MCTG.Services;
 
 public class PasswordService
 {
-    public string PasswordHash(string plainPassword)
+    public string PasswordHash(string plainPassword, byte[] salt)
     {
         using (SHA256 sha256Hash = SHA256.Create())
         {
-            // Generating salt
-            byte[] salt = GenerateSalt();
             // Getting the byte of the plain password
             byte[] passwordBytes = Encoding.UTF8.GetBytes(plainPassword);
             // Creating the salted password byte array
@@ -37,8 +35,8 @@ public class PasswordService
         return salt;
     }
 
-    public bool ValidatePassword(string storedPassword, string plainPassword)
+    public bool ValidatePassword(string storedPassword, string plainPassword, byte[] salt)
     {
-        return storedPassword == PasswordHash(plainPassword);
+        return storedPassword == PasswordHash(plainPassword, salt);
     }
 }

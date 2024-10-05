@@ -11,6 +11,8 @@ public class Stack
 
    public void RemoveCardFromStack(Card card)
    {
-      Console.WriteLine( cards.Remove(card) ? "Card removed Successfully" : "Card remove Failed");
+      if(!cards.Remove(card)){throw new Exception("Card not found");};
    }
+   public int Count() => cards.Count;
+   public Card getCard(int index) => cards[index];
 }

@@ -17,17 +17,12 @@ public class BattleService
     private const int Rounds = 100;
     private static int _currentRound = 1;
 
-    public BattleService(User player1, User player2)
+    public void StartBattle(User player1, User player2)
     {
         Player1 = player1;
         Player2 = player2;
         _player1Deck = player1.UserDeck;
         _player2Deck = player2.UserDeck;
-
-    }
-
-    public void StartBattle()
-    {
         Random random = new Random();
         while (_currentRound < Rounds && !GameOver())
         {

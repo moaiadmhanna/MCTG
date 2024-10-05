@@ -123,7 +123,7 @@ public class Database
     public static Card GetRandomCard()
     {
         Random rnd = new Random();
-        int randomIndex = rnd.Next(CardRepository.Count);
+        int randomIndex = rnd.Next(0,CardRepository.Count);
         return CardRepository[randomIndex];
     }
 }

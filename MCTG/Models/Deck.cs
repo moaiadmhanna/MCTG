@@ -9,13 +9,17 @@ public class Deck
     public void AddCardToDeck(Card card)
     {
         _cards.Add(card);
-        Console.WriteLine("Card added to Deck successfully");
     }
 
     public void RemoveCardFromCard(Card card)
     {
-        Console.WriteLine( _cards.Remove(card) ? "Card removed Successfully" : "Card remove Failed");
+        if (!_cards.Remove(card))
+        {
+            throw new Exception("Card not found");
+
+        }
     }
+
     public int Count() => _cards.Count;
 
     public Card GetCard(int index)

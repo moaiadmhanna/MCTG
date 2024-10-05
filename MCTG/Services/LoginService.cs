@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using MCTG.Data;
 
 namespace MCTG.Services;
@@ -5,17 +6,25 @@ namespace MCTG.Services;
 public class LoginService
 {
     PasswordService PasswordService = new PasswordService();
-    LoginService(string username, string password)
+    public User LoginUser(string username, string password)
     {
-        if (Database.UserExists(username) &&
-            PasswordService.ValidatePassword(Database.getUser(username).Password, password))
+        if (Database.UserExists(username))
         {
-            Console.WriteLine($"User {username} logged in");
-            // Generate the token
+            User loginUser = Database.getUser(username);
+            if (PasswordService.ValidatePassword(loginUser.Password, password,loginUser.Salt))
+            {
+                Console.WriteLine($"User {username} logged in");
+                return loginUser;
+                // Generate the token
+            }
+            else
+            {
+                throw new ValidationException("Invalid username or password");
+            }
         }
         else
         {
-            Console.WriteLine("Invalid username or password");
+            throw new ArgumentException("User does not exist");
         }
     }
 }
