@@ -115,7 +115,7 @@ public class Database
         Users.Add(user);
     }
 
-    public static User getUser(string username)
+    public static User GetUser(string username)
     {
         return Users.FirstOrDefault(u => u.UserName == username);
     }

@@ -8,7 +8,7 @@ public class PackageService
 
     public void PurchasePackage(string username)
     {
-        User user = Database.getUser(username);
+        User user = Database.GetUser(username);
         if (user == null)
         {
             Console.WriteLine($"User {username} not found");

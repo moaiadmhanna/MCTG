@@ -6,7 +6,7 @@ namespace MCTG.Services;
 public class RegisterService
 {
     PasswordService PasswordService = new PasswordService();
-    public void RegisterUser(string name, string password)
+    public bool RegisterUser(string name, string password)
     {
         if (!Database.UserExists(name))
         {
@@ -15,10 +15,9 @@ public class RegisterService
             User newUser = new User(name, hashedPassword,salt);
             Database.AddUser(newUser);
             Console.WriteLine("User has been added to Database successfully");
+            return true;
         }
-        else
-        {
-            Console.WriteLine("User already exists");
-        }
+        Console.WriteLine("User already exists");
+        return false;
     }
 }
