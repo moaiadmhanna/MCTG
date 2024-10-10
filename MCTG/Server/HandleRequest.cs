@@ -152,14 +152,16 @@ public class HandleRequest
             var packageRequest = JsonSerializer.Deserialize<Dictionary<string,object>>(requestBody);
             if (packageRequest != null)
             {
-                if (!packageRequest.TryGetValue("Username", out var usernameValue))
+                if (!packageRequest.TryGetValue("Token", out var toeknValue))
                 {
-                    SendResponse(writer, "400 Bad Request", "Username is required.");
+                    SendResponse(writer, "400 Bad Request", "Token is required.");
                     return;
                 }
-                string username = usernameValue.ToString();
+                string token = toeknValue.ToString();
                 PackageService packageService = new PackageService();
-                packageService.PurchasePackage(username);
+                LoginService loginService = new LoginService();
+                User user = loginService.GetUser(token);
+                packageService.PurchasePackage(user);
                 SendResponse(writer, "200 OK", "Package purchased successfully.");
             }
             else

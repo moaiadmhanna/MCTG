@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using MCTG.Data;
 
 namespace MCTG.Services;
 
@@ -16,13 +17,17 @@ public class BattleService
     private Deck _player2Deck;
     private const int Rounds = 100;
     private static int _currentRound = 1;
-
-    public void StartBattle(User player1, User player2)
+    
+    public void StartBattle(string player1, string player2)
     {
-        Player1 = player1;
-        Player2 = player2;
-        _player1Deck = player1.UserDeck;
-        _player2Deck = player2.UserDeck;
+        if (!Database.UserExists(player1) || !Database.UserExists(player2))
+        {
+            throw new ArgumentException("Users dont exist");
+        }
+        Player1 = Database.GetUser(player1);
+        Player2 = Database.GetUser(player2);
+        _player1Deck = Player1.UserDeck;
+        _player2Deck = Player2.UserDeck;
         Random random = new Random();
         while (_currentRound < Rounds && !GameOver())
         {

@@ -6,9 +6,9 @@ public class PackageService
 {
     private const int PackageCost = 5;
 
-    public void PurchasePackage(string username)
+    public void PurchasePackage(User user)
     {
-        User user = Database.GetUser(username);
+        string username = user.UserName;
         if (user == null)
         {
             Console.WriteLine($"User {username} not found");

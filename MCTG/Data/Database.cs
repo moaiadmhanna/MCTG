@@ -6,7 +6,6 @@ public class Database
 {
     private static List<User> Users { get; set; } = new List<User>();
     private static List<Card> CardRepository { get; set; } = new List<Card>();
-
     static Database()
     {
         InitializeCards();
@@ -119,7 +118,6 @@ public class Database
     {
         return Users.FirstOrDefault(u => u.UserName == username);
     }
-
     public static Card GetRandomCard()
     {
         Random rnd = new Random();
