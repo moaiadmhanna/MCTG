@@ -18,6 +18,7 @@ public class HandleRequest
         string requestBody = ReadRequestBody(reader);
         switch (method)
         {
+            //TODO Put Method for the Battle Service
             case "GET":
                 if (path == "/package")
                 {
@@ -29,7 +30,7 @@ public class HandleRequest
                 {
                     HandleLogin(reader, writer, requestBody);
                 }
-                else if (path == "/register")
+                else if (path == "/users")
                 {
                     HandleRegister(reader,writer, requestBody);
                 }
@@ -131,7 +132,7 @@ public class HandleRequest
                 string password = passwordValue.ToString();
                 LoginService loginService = new LoginService();
                 string token = loginService.LoginUser(username, password);
-                SendResponse(writer, "200 OK", "Login successful. token generated: " + token);
+                SendResponse(writer, "200 OK", $"Login successful. token generated: {token}");
             }
             else
             {
@@ -152,12 +153,12 @@ public class HandleRequest
             var packageRequest = JsonSerializer.Deserialize<Dictionary<string,object>>(requestBody);
             if (packageRequest != null)
             {
-                if (!packageRequest.TryGetValue("Token", out var toeknValue))
+                if (!packageRequest.TryGetValue("Token", out var tokenValue))
                 {
                     SendResponse(writer, "400 Bad Request", "Token is required.");
                     return;
                 }
-                string token = toeknValue.ToString();
+                string token = tokenValue.ToString();
                 PackageService packageService = new PackageService();
                 LoginService loginService = new LoginService();
                 User user = loginService.GetUser(token);

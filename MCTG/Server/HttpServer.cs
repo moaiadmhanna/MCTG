@@ -7,7 +7,6 @@ namespace MCTG.Server;
 public class HttpServer
 {
     private TcpListener _server;
-
     public HttpServer(IPAddress address, int port)
     {
         _server = new TcpListener(address, port);

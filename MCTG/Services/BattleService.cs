@@ -20,6 +20,7 @@ public class BattleService
     
     public void StartBattle(string player1, string player2)
     {
+        //TODO should take the two players as parameter and not the name of the PLayer
         if (!Database.UserExists(player1) || !Database.UserExists(player2))
         {
             throw new ArgumentException("Users dont exist");
@@ -31,6 +32,7 @@ public class BattleService
         Random random = new Random();
         while (_currentRound < Rounds && !GameOver())
         {
+            //TODO it should return if the round exceeded the Max Round
             //Thread.Sleep(2000);
             Card player1Card = _player1Deck.GetCard(random.Next(_player1Deck.Count()));
             Card player2Card = _player2Deck.GetCard(random.Next(_player2Deck.Count()));

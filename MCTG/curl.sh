@@ -1,35 +1,58 @@
-#!/bin/zsh
+#!/bin/sh
 
-## Check the Register Post Method for player 1
-echo "Checking the Register Post Method"
-curl -i -X POST http://localhost:10001/register --header "Content-Type: application/json" -d "{\"Username\":\"Muayad\", \"Password\":\"Muayad1234\"}"
-echo "\nShould return User registered successfully."
+# --------------------------------------------------
+# Monster Trading Cards Game
+# --------------------------------------------------
+echo "CURL Testing for Monster Trading Cards Game"
+echo "Syntax: MonsterTradingCards.sh [pause]"
+echo "- pause: optional, if set, then script will pause after each block"
+echo .
 
-## Check the Login Post Method for player 1
-echo "Checking the Login Post Method"
-curl -i -X POST http://localhost:10001/sessions --header "Content-Type: application/json" -d "{\"Username\":\"Muayad\", \"Password\":\"Muayad1234\"}"
-echo "\nShould return the generated Token for the user"
 
-## Check the Package Get Method for player 1
-echo "Checking the Package Get Method"
-curl -i -X GET http://localhost:10001/package --header "Content-Type: application/json" -d "{\"Token\":\"rX+Fc1AOENCqPuxMtORcLneSJn31gUlnPRyT525cYgk=\"}"
-echo "\nShould return Package purchased successfully."
+pauseFlag=0
+for arg in "$@"; do
+    if [ "$arg" == "pause" ]; then
+        pauseFlag=1
+        break
+    fi
+done
 
-## Check the Register Post Method for player 2
-echo "Checking the Register Post Method"
-curl -i -X POST http://localhost:10001/register --header "Content-Type: application/json" -d "{\"Username\":\"Mostafa\", \"Password\":\"Muayad1234\"}"
-echo "\nShould return User registered successfully."
+if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
 
-## Check the Login Post Method for player 2
-echo "Checking the Login Post Method"
-curl -i -X POST http://localhost:10001/sessions --header "Content-Type: application/json" -d "{\"Username\":\"Mostafa\", \"Password\":\"Muayad1234\"}"
-echo "\nShould return the generated Token for the user"
+# --------------------------------------------------
+echo "1) Create Users (Registration)"
+# Create User
+curl -i -X POST http://localhost:10001/users --header "Content-Type: application/json" -d "{\"Username\":\"kienboec\", \"Password\":\"daniel\"}"
+echo "Should return HTTP 201"
+echo .
+curl -i -X POST http://localhost:10001/users --header "Content-Type: application/json" -d "{\"Username\":\"altenhof\", \"Password\":\"markus\"}"
+echo "Should return HTTP 201"
+echo .
+curl -i -X POST http://localhost:10001/users --header "Content-Type: application/json" -d "{\"Username\":\"admin\",    \"Password\":\"istrator\"}"
+echo "Should return HTTP 201"
+echo .
 
-## Check the Package Get Method for player 2
-echo "Checking the Package Get Method"
-curl -i -X GET http://localhost:10001/package --header "Content-Type: application/json" -d "{\"Token\":\"Cahh1e/7w+ppu9nqhuRFep7ek1gFWRzWS6cTQtb62Z0=\"}"
-echo "\nShould return Package purchased successfully."
+if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
 
-## Check the Battle Put Method
-echo "\nChecking the Battle Put Method"
-##....
+echo "should fail:"
+curl -i -X POST http://localhost:10001/users --header "Content-Type: application/json" -d "{\"Username\":\"kienboec\", \"Password\":\"daniel\"}"
+echo "Should return HTTP 4xx - User already exists"
+echo .
+curl -i -X POST http://localhost:10001/users --header "Content-Type: application/json" -d "{\"Username\":\"kienboec\", \"Password\":\"different\"}"
+echo "Should return HTTP 4xx - User already exists"
+echo . 
+echo .
+
+if [ $pauseFlag -eq 1 ]; then read -p "Press enter to continue..."; fi
+
+# --------------------------------------------------
+echo "2) Login Users"
+curl -i -X POST http://localhost:10001/sessions --header "Content-Type: application/json" -d "{\"Username\":\"kienboec\", \"Password\":\"daniel\"}"
+echo "should return HTTP 200 with generated token for the user, here: kienboec-mtcgToken"
+echo .
+curl -i -X POST http://localhost:10001/sessions --header "Content-Type: application/json" -d "{\"Username\":\"altenhof\", \"Password\":\"markus\"}"
+echo "should return HTTP 200 with generated token for the user, here: altenhof-mtcgToken"
+echo .
+curl -i -X POST http://localhost:10001/sessions --header "Content-Type: application/json" -d "{\"Username\":\"admin\",    \"Password\":\"istrator\"}"
+echo "should return HTTP 200 with generated token for the user, here: admin-mtcgToken"
+echo .

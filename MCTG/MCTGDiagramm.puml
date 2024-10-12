@@ -1,6 +1,5 @@
 @startuml
 'https://plantuml.com/class-diagram
-
 abstract class Card
 {
     # Name : string
@@ -18,6 +17,7 @@ class SpellCard
 {
     + SpellCard(name : string , Damage : int, Element : ElementType)
 }
+
 class User
 {
     + UserName : string
@@ -27,14 +27,15 @@ class User
     + Coins : double
     + Elo : double
     + User(userName : string, password : string)
-    
 }
+
 class Stack
 {
     - cards : List<Card>
     + addCardToStack(card : Card)
     + removeCardFromStack(card : Card)
 }
+
 enum ElementType
 {
     Water
@@ -42,9 +43,74 @@ enum ElementType
     Normal
 }
 
+class Database
+{
+    #Users : List<User>
+    #CardRepository : List<Card>
+}
+
+class Deck
+{
+    + Cards : List<Card>
+    + AddCardToDeck(card : Card)
+    + RemoveCardFromDeck(card : Card)
+}
+
+class Package
+{
+    + Cards : List<Card>
+    + Package()
+}
+
+class Program
+{
+    - TcpListener server
+    + Main()
+    + HandleRegister()
+    + HandleLogin()
+    + HandlePackage()
+    + ReadRequestBody()
+    + SendResponse()
+}
+
+class RegisterService
+{
+    + RegisterUser()
+}
+
+class LoginService
+{
+    + LoginUser()
+}
+
+class PackageService
+{
+    + PurchasePackage()
+}
+
+class BattleService
+{
+    - Player1 : User
+    - Player2 : User
+    - _player1Deck : Deck
+    - _player2Deck : Deck
+    + StartBattle(player1 : string, player2 : string)
+    + Attack(card1 : Card, card2 : Card)
+    + GameOver() : bool
+}
+
 Card <|-- MonsterCard
 Card <|-- SpellCard
 User --|> Stack
+User --|> Deck
 Card --|> ElementType
+Database "1" -- "*" User
+Package "1" -- "*" Card
+BattleService "1" -- "2" User : "Players"
+BattleService "1" -- "1" Deck : "Player Deck"
+Program --> RegisterService
+Program --> LoginService
+Program --> PackageService
+Program --> BattleService
 
 @enduml
