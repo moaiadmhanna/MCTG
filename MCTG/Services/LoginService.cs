@@ -7,6 +7,7 @@ namespace MCTG.Services;
 
 public class LoginService
 {
+    //TODO change the approch of saving and checking the token in the DB itself
    // Dictonary<token,user>
     private static Dictionary<string,User> _tokens { get; set; } = new Dictionary<string, User>();
     PasswordService PasswordService = new PasswordService();
@@ -19,6 +20,7 @@ public class LoginService
             if (PasswordService.ValidatePassword(loginUser.Password, password,loginUser.Salt))
             {
                 Console.WriteLine($"User {username} logged in");
+                
                 if (!_tokens.ContainsValue(loginUser))
                 {
                     string generatedToken = GenerateToken(loginUser.UserName);

@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0-rc.1.24451.1" />
+      <PackageReference Include="Npgsql" Version="8.0.5" />
     </ItemGroup>
 
 </Project>
