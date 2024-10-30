@@ -6,9 +6,9 @@ public class DatabaseInitializer
 {
     private readonly string _connectionString;
 
-    public DatabaseInitializer(string connectionString)
+    public DatabaseInitializer()
     {
-        _connectionString = connectionString;
+        _connectionString = DatabaseConf.ConnectionString;
     }
 
     public void InitializeDB()
@@ -41,13 +41,13 @@ public class DatabaseInitializer
                 // Create the User table
                 command.CommandText = @"
                 CREATE TABLE IF NOT EXISTS Users(
-                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                username VARCHAR(50) NOT NULL UNIQUE,
-                password VARCHAR(100) NOT NULL,
-                password_salt BYTEA NOT NULL,
-                coins INT DEFAULT 20,
-                elo INT DEFAULT 100,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    username VARCHAR(50) NOT NULL UNIQUE,
+                    password VARCHAR(100) NOT NULL,
+                    password_salt BYTEA NOT NULL,
+                    coins INT DEFAULT 20,
+                    elo INT DEFAULT 100,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 ";
                 command.ExecuteNonQuery();
@@ -57,11 +57,11 @@ public class DatabaseInitializer
                     id SERIAL PRIMARY KEY,
                     user_id UUID REFERENCES Users(id),
                     token VARCHAR(256) NOT NULL UNIQUE,
-                    expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 hour'),
+                    expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '1 hour')
                 )
                 ";
                 command.ExecuteNonQuery();
-                // Create the Cards table
+                // Create the Cards table instance
                 command.CommandText = @"
                 CREATE TABLE IF NOT EXISTS Cards(
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -69,8 +69,28 @@ public class DatabaseInitializer
                     type VARCHAR(10) CHECK (type IN ('monster', 'spell')) NOT NULL,
                     element_type VARCHAR(10) CHECK (element_type IN ('fire', 'water', 'normal')) NOT NULL,
                     damage INT NOT NULL,
+                    quantity INT NOT NULL CHECK (quantity > 0)
                 )
                 ";
+                command.ExecuteNonQuery();
+                // Create the UserStack Table
+                command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS UserStack(
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    user_id UUID REFERENCES Users(id),
+                    card_id UUID REFERENCES Cards(id),
+                    quantity INT NOT NULL CHECK (quantity > 0)
+                )
+                ";
+                command.ExecuteNonQuery();
+                // Create the Userdeck Table
+                command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS UserDeck(
+                  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                  user_stack_id UUID REFERENCES UserStack(id)
+                )
+                ";
+                command.ExecuteNonQuery();
             }
         }
 
