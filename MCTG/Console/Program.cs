@@ -16,18 +16,21 @@ class Program
         //server.Listen();
         DatabaseConf databaseConf = new DatabaseConf("localhost", "admin","adminIf23b191","mctg");
         //Testing the DB Initializer
-            //DatabaseInitializer db = new DatabaseInitializer();
-            //db.InitializeDB();
+            // DatabaseInitializer db = new DatabaseInitializer();
+            // db.InitializeDB();
         UserRepo userRepo = new UserRepo();
         // Testing the AddUser Method
             // PasswordService passwordService = new PasswordService();
             // byte[] salt = passwordService.GenerateSalt();
             // string hashedPassword = passwordService.PasswordHash("123456Mn",salt);
             // User newUser = new User("Muayad", hashedPassword,salt);
-            // userRepo.AddUser(newUser);
+            // await userRepo.AddUser(newUser);
         // Testing the UserExist method
            // Console.WriteLine(await userRepo.UserExists("Muayad") ? "YES" : "NO");
         // Testing the GetUserId method
             // Console.WriteLine(await userRepo.GetUserId("Muayad"));
+        // Testing the GetUser method without stack or deck
+            //User? user = await userRepo.GetUser("Muayad");
+            //Console.WriteLine(user.Password);
     }
 }

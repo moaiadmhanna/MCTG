@@ -94,7 +94,8 @@ public class DatabaseInitializer
                 command.CommandText = @"
                 CREATE TABLE IF NOT EXISTS UserDeck(
                   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                  user_stack_id UUID REFERENCES UserStack(id)
+                  user_stack_id UUID REFERENCES UserStack(id),
+                  quantity INT NOT NULL CHECK (quantity > 0) 
                 )
                 ";
                 command.ExecuteNonQuery();
