@@ -10,12 +10,12 @@ public class User
     public double Coins { get; private set; }
     public double Elo { get; private set; }
 
-    public User(string userName, string password, byte[] salt)
+    public User(string userName, string password, byte[] salt, int coins = 20, int elo = 100)
     {
         UserName = userName;
         Password = password;
-        Coins = 20;
-        Elo = 100;
+        Coins = coins;
+        Elo = elo;
         Salt = salt;
 
     }

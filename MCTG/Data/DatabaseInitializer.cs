@@ -10,7 +10,6 @@ public class DatabaseInitializer
     {
         _connectionString = DatabaseConf.ConnectionString;
     }
-
     public void InitializeDB()
     {
         var builder = new NpgsqlConnectionStringBuilder(_connectionString);
@@ -69,7 +68,15 @@ public class DatabaseInitializer
                     type VARCHAR(10) CHECK (type IN ('monster', 'spell')) NOT NULL,
                     element_type VARCHAR(10) CHECK (element_type IN ('fire', 'water', 'normal')) NOT NULL,
                     damage INT NOT NULL,
-                    quantity INT NOT NULL CHECK (quantity > 0)
+                    quantity INT NOT NULL CHECK (quantity > 0),
+                    monster_type varchar(50) CHECK (monster_type IN (
+                    'Goblin',
+                    'Wizzard',
+                    'Dragon',
+                    'Knight',
+                    'Krake',
+                    'FireElve',
+                    'Ork')) 
                 )
                 ";
                 command.ExecuteNonQuery();
@@ -93,6 +100,5 @@ public class DatabaseInitializer
                 command.ExecuteNonQuery();
             }
         }
-
     }
 }

@@ -4,17 +4,30 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using MCTG.Data;
+using MCTG.Data.Repositories;
 using MCTG.Server;
 
 namespace MCTG;
 class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         //HttpServer server = new HttpServer(IPAddress.Any, 10001);
         //server.Listen();
         DatabaseConf databaseConf = new DatabaseConf("localhost", "admin","adminIf23b191","mctg");
-        DatabaseInitializer db = new DatabaseInitializer();
-        db.InitializeDB();
+        //Testing the DB Initializer
+            //DatabaseInitializer db = new DatabaseInitializer();
+            //db.InitializeDB();
+        UserRepo userRepo = new UserRepo();
+        // Testing the AddUser Method
+            // PasswordService passwordService = new PasswordService();
+            // byte[] salt = passwordService.GenerateSalt();
+            // string hashedPassword = passwordService.PasswordHash("123456Mn",salt);
+            // User newUser = new User("Muayad", hashedPassword,salt);
+            // userRepo.AddUser(newUser);
+        // Testing the UserExist method
+           // Console.WriteLine(await userRepo.UserExists("Muayad") ? "YES" : "NO");
+        // Testing the GetUserId method
+            // Console.WriteLine(await userRepo.GetUserId("Muayad"));
     }
 }
