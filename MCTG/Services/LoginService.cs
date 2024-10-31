@@ -2,32 +2,32 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
 using MCTG.Data;
+using MCTG.Data.Repositories;
 
 namespace MCTG.Services;
 
 public class LoginService
 {
-    //TODO change the approch of saving and checking the token in the DB itself
-   // Dictonary<token,user>
-    private static Dictionary<string,User> _tokens { get; set; } = new Dictionary<string, User>();
-    PasswordService PasswordService = new PasswordService();
-    public string LoginUser(string username, string password)
+    private PasswordService PasswordService = new PasswordService();
+    private UserRepo _userRepo = new UserRepo();
+    private TokenRepo _tokenRepo = new TokenRepo();
+    public async Task<string> LoginUser(string username, string password)
     {
-        if (Database.UserExists(username))
+        if (await _userRepo.UserExists(username))
         {
-            User loginUser = Database.GetUser(username);
+            Guid userId = await _userRepo.GetUserId(username);
+            User? loginUser = await _userRepo.GetUser(userId);
             
             if (PasswordService.ValidatePassword(loginUser.Password, password,loginUser.Salt))
             {
                 Console.WriteLine($"User {username} logged in");
-                
-                if (!_tokens.ContainsValue(loginUser))
+                if (! await _tokenRepo.HasToken(userId))
                 {
                     string generatedToken = GenerateToken(loginUser.UserName);
-                    _tokens.Add(generatedToken, loginUser);
+                    await _tokenRepo.AddToken(userId, generatedToken);
                     return generatedToken;
                 }
-                return IsLoggedIn(loginUser); // return the token
+                return await IsLoggedIn(userId); // return the token
             }
             throw new ValidationException("Invalid username or password");
         }
@@ -41,12 +41,15 @@ public class LoginService
             return Convert.ToBase64String(hash);
         }
     }
-    public User GetUser(string token)
+    public async Task<User?> GetUser(string token)
     {
-        return _tokens[token];
+        Guid? userId = await _tokenRepo.GerUserUid(token);
+        if (userId == null)
+            return null;
+        return await _userRepo.GetUser(userId);
     }
-    private string IsLoggedIn(User user)
+    private async Task<string> IsLoggedIn(Guid userId)
     {
-        return _tokens.FirstOrDefault(x => x.Value == user).Key;
+        return await _tokenRepo.GetToken(userId);
     }
 }

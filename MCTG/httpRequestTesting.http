@@ -1,0 +1,65 @@
+### Should succeed - Create user "kienboec"
+POST http://localhost:10001/users
+Content-Type: application/json
+
+{
+  "Username": "kienboec",
+  "Password": "daniel"
+}
+
+> // Expected: HTTP 201 - User created
+
+###
+
+### Should succeed - Create user "altenhof"
+POST http://localhost:10001/users
+Content-Type: application/json
+
+{
+  "Username": "altenhof",
+  "Password": "markus"
+}
+
+###
+
+### Should fail - User already exists with the same password
+POST http://localhost:10001/users
+Content-Type: application/json
+
+{
+  "Username": "kienboec",
+  "Password": "daniel"
+}
+
+
+###
+
+### Should fail - User already exists with a different password
+POST http://localhost:10001/users
+Content-Type: application/json
+
+{
+  "Username": "kienboec",
+  "Password": "different"
+}
+### 2) Login Users
+
+### Login user "kienboec"
+POST http://localhost:10001/sessions
+Content-Type: application/json
+
+{
+  "Username": "kienboec",
+  "Password": "daniel"
+}
+###
+
+### Login user "altenhof"
+POST http://localhost:10001/sessions
+Content-Type: application/json
+
+{
+  "Username": "altenhof",
+  "Password": "markus"
+}
+

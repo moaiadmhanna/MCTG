@@ -12,9 +12,9 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        //HttpServer server = new HttpServer(IPAddress.Any, 10001);
-        //server.Listen();
         DatabaseConf databaseConf = new DatabaseConf("localhost", "admin","adminIf23b191","mctg");
+        HttpServer server = new HttpServer(IPAddress.Any, 10001);
+        await server.Listen();
         //Testing the DB Initializer
             // DatabaseInitializer db = new DatabaseInitializer();
             // db.InitializeDB();

@@ -5,9 +5,9 @@ using MCTG.Services;
 namespace MCTG.Server;
 public class HandleRequest
 {
-    public void ProcessRequest(StreamReader reader, StreamWriter writer)
+    public async Task ProcessRequest(StreamReader reader, StreamWriter writer)
     {
-        string requestLine = reader.ReadLine();
+        string requestLine = await reader.ReadLineAsync();
         string[] requestParts = requestLine.Split(" ");
         if (requestParts.Length < 3)
         {
@@ -15,34 +15,34 @@ public class HandleRequest
         }
         string method = requestParts[0]; // The HTTP method
         string path = requestParts[1];   // The requested path
-        string requestBody = ReadRequestBody(reader);
+        string requestBody = await ReadRequestBody(reader);
         switch (method)
         {
             //TODO Put Method for the Battle Service
             case "GET":
                 if (path == "/package")
                 {
-                    HandlePackage(reader,writer,requestBody);
+                    await HandlePackage(reader,writer,requestBody);
                 }
                 break;
             case "POST":
                 if (path == "/sessions")
                 {
-                    HandleLogin(reader, writer, requestBody);
+                    await HandleLogin(reader, writer, requestBody);
                 }
                 else if (path == "/users")
                 {
-                    HandleRegister(reader,writer, requestBody);
+                    await HandleRegister(reader,writer, requestBody);
                 }
                 break;
         }
     }
-    public string ReadRequestBody(StreamReader reader)
+    public async Task<string> ReadRequestBody(StreamReader reader)
     {
         string? line;
         StringBuilder body = new StringBuilder();
         int content_length = 0;
-        while (!string.IsNullOrWhiteSpace(line = reader.ReadLine()))
+        while (!string.IsNullOrWhiteSpace(line = await reader.ReadLineAsync()))
         {
             if (line == "")
             {
@@ -62,7 +62,7 @@ public class HandleRequest
             while ( bytesReadTotal < content_length)
             {
                 int bytesToRead = content_length - bytesReadTotal;
-                int bytesRead = reader.Read(chars, bytesReadTotal, bytesToRead);
+                int bytesRead = await reader.ReadAsync(chars, bytesReadTotal, bytesToRead);
                 if (bytesRead == 0)
                     break;
                 bytesReadTotal += bytesRead;
@@ -72,15 +72,17 @@ public class HandleRequest
         return body.ToString();
     }
 
-    public void SendResponse(StreamWriter writer, string status, string body)
+    public async Task SendResponse(StreamWriter writer, string status, string body)
     {
-        writer.WriteLine($"HTTP/1.1 {status}");
-        writer.WriteLine("Content-Type: text/plain");
-        writer.WriteLine($"Content-Length: {body.Length}");
-        writer.WriteLine();
-        writer.WriteLine(body);
+        await writer.WriteLineAsync($"HTTP/1.1 {status}");
+        await writer.WriteLineAsync("Content-Type: text/plain");
+        await writer.WriteLineAsync($"Content-Length: {body.Length}");
+        await writer.WriteLineAsync("Connection: keep-alive"); // Ensure keep-alive is set if desired
+        await writer.WriteLineAsync();
+        await writer.WriteLineAsync(body);
+        await writer.FlushAsync();
     }
-    public void HandleRegister(StreamReader reader, StreamWriter writer, string requestBody)
+    public async Task HandleRegister(StreamReader reader, StreamWriter writer, string requestBody)
     {
         Console.WriteLine("Register request...");
         try
@@ -92,29 +94,29 @@ public class HandleRequest
                 if (!registerRequest.TryGetValue("Username", out var usernameValue) || 
                     !registerRequest.TryGetValue("Password", out var passwordValue))
                 {
-                    SendResponse(writer, "400 Bad Request", "Username and Password are required.");
+                    await SendResponse(writer, "400 Bad Request", "Username and Password are required.");
                     return;
                 }
                 string username = usernameValue.ToString();
                 string password = passwordValue.ToString();
                 RegisterService registerService = new RegisterService();
-                if(registerService.RegisterUser(username, password))
-                    SendResponse(writer, "200 OK", "User registered successfully.");
+                if(await registerService.RegisterUser(username, password))
+                    await SendResponse(writer, "200 OK", "User registered successfully.");
                 else
-                    SendResponse(writer, "400 Bad Request", "User not registered.");
+                    await SendResponse(writer, "400 Bad Request", "User not registered.");
             }
             else
             {
-                SendResponse(writer, "400 Bad Request", "Invalid JSON format.");
+                await SendResponse(writer, "400 Bad Request", "Invalid JSON format.");
             }
         }
         catch (JsonException ex)
         {
-            SendResponse(writer, "400 Bad Request", ex.Message);
+            await SendResponse(writer, "400 Bad Request", ex.Message);
         }
     }
 
-    public void HandleLogin(StreamReader reader, StreamWriter writer, string requestBody)
+    public async Task HandleLogin(StreamReader reader, StreamWriter writer, string requestBody)
     {
         Console.WriteLine("Login request...");
         try
@@ -125,27 +127,27 @@ public class HandleRequest
                 if (!loginRequest.TryGetValue("Username", out var usernameValue) || 
                     !loginRequest.TryGetValue("Password", out var passwordValue))
                 {
-                    SendResponse(writer, "400 Bad Request", "Username and Password are required.");
+                    await SendResponse(writer, "400 Bad Request", "Username and Password are required.");
                     return;
                 }
                 string username = usernameValue.ToString();
                 string password = passwordValue.ToString();
                 LoginService loginService = new LoginService();
-                string token = loginService.LoginUser(username, password);
-                SendResponse(writer, "200 OK", $"Login successful. token generated: {token}");
+                string token = await loginService.LoginUser(username, password);
+                await SendResponse(writer, "200 OK", $"Login successful. token generated: {token}");
             }
             else
             {
-                SendResponse(writer, "400 Bad Request", "Invalid JSON format.");
+                await SendResponse(writer, "400 Bad Request", "Invalid JSON format.");
             }
         }
         catch (JsonException ex)
         {
-            SendResponse(writer, "400 Bad Request", ex.Message);
+            await SendResponse(writer, "400 Bad Request", ex.Message);
         }
     }
 
-    public void HandlePackage(StreamReader reader, StreamWriter writer,string requestBody)
+    public async Task HandlePackage(StreamReader reader, StreamWriter writer,string requestBody)
     {
         Console.WriteLine("Package request...");
         try
@@ -155,24 +157,29 @@ public class HandleRequest
             {
                 if (!packageRequest.TryGetValue("Token", out var tokenValue))
                 {
-                    SendResponse(writer, "400 Bad Request", "Token is required.");
+                    await SendResponse(writer, "400 Bad Request", "Token is required.");
                     return;
                 }
                 string token = tokenValue.ToString();
                 PackageService packageService = new PackageService();
                 LoginService loginService = new LoginService();
-                User user = loginService.GetUser(token);
+                User? user = await loginService.GetUser(token);
+                if (user == null)
+                {
+                    await SendResponse(writer,"404 Error","There is no valid User");
+                    return;
+                }
                 packageService.PurchasePackage(user);
-                SendResponse(writer, "200 OK", "Package purchased successfully.");
+                await SendResponse(writer, "200 OK", "Package purchased successfully.");
             }
             else
             {
-                SendResponse(writer, "400 Bad Request", "Invalid JSON format.");
+                await SendResponse(writer, "400 Bad Request", "Invalid JSON format.");
             }
         }
         catch (JsonException ex)
         {
-            SendResponse(writer, "400 Bad Request", ex.Message);
+            await SendResponse(writer, "400 Bad Request", ex.Message);
         }
     }
 }

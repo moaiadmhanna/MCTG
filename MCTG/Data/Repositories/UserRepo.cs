@@ -51,15 +51,15 @@ public class UserRepo
         }
     }
 
-    public async Task<User?> GetUser(string username)
+    public async Task<User?> GetUser(Guid? userId)
     {
-        const string searchQuery = "SELECT * FROM Users WHERE username = @UserName;";
+        const string searchQuery = "SELECT * FROM Users WHERE id = @userid;";
         using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
         {
             await connection.OpenAsync();
             using (NpgsqlCommand command = new NpgsqlCommand(searchQuery, connection))
             {
-                command.Parameters.AddWithValue("@UserName", username);
+                command.Parameters.AddWithValue("@userid", userId);
                 using (NpgsqlDataReader reader = await command.ExecuteReaderAsync())
                 {
                     if (await reader.ReadAsync()) // Check if a row was returned
@@ -77,7 +77,7 @@ public class UserRepo
                         JOIN cards AS c ON us.card_id = c.id
                         WHERE us.user_id = @userID;
                         ";
-                        await GetUserStackOrDeck(user, stackQuery,'s');
+                        await GetUserStackOrDeck(user, stackQuery,'s',userId);
                         const string deckQuery = @"
                         SELECT c.name, c.type, c.element_type, c.damage, ud.quantity, c.monster_type
                         FROM userdeck AS ud
@@ -85,7 +85,7 @@ public class UserRepo
                         JOIN cards AS c ON us.card_id = c.id
                         WHERE us.user_id = @userID;
                         ";
-                        await GetUserStackOrDeck(user, deckQuery,'d');
+                        await GetUserStackOrDeck(user, deckQuery,'d',userId);
                         return user;
                     }
                 }
@@ -94,9 +94,9 @@ public class UserRepo
         return null;
     }
 
-    private async Task<Guid?> GetUserId(string username)
+    public async Task<Guid> GetUserId(string username)
     {
-        const string searchQuery = "SELECT id FROM Users WHERE username = @UserName;";
+        const string searchQuery = "SELECT id FROM users WHERE username = @UserName;";
         using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
         {
             await connection.OpenAsync();
@@ -105,20 +105,19 @@ public class UserRepo
                 command.Parameters.AddWithValue("@UserName", username);
                 using (NpgsqlDataReader reader = await command.ExecuteReaderAsync())
                 {
-                    if (await reader.ReadAsync()) // Check if a row was returned
+                    if (await reader.ReadAsync())  // Check if a row is available
                     {
                         return reader.GetGuid(reader.GetOrdinal("id"));
                     }
+                    throw new InvalidOperationException("User not found.");
                 }
             }
         }
-        return null;
     }
 
-    private async Task GetUserStackOrDeck(User user, string query, char where)
+    private async Task GetUserStackOrDeck(User user, string query, char where, Guid? userId)
     {
-        Guid? userId = await GetUserId(user.UserName);
-        if(userId == null) return;
+        if (userId == null) return;
         using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
         {
             await connection.OpenAsync();
@@ -143,8 +142,8 @@ public class UserRepo
                             newCard = new MonsterCard(name, damage, element, monster);
                         else newCard = new SpellCard(name, damage, element);
                         // if a card quantity more than 1
-                        for(var cnt = 0; cnt < quantity; cnt++)
-                            if(where == 's')
+                        for (var cnt = 0; cnt < quantity; cnt++)
+                            if (where == 's')
                                 user.UserStack.AddCardToStack(newCard);
                             else
                                 user.UserDeck.AddCardToDeck(newCard);

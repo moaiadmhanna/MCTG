@@ -14,7 +14,7 @@ public class HttpServer
         Console.WriteLine($"Listening on port {port}.....");
     }
 
-    public void Listen()
+    public async Task Listen()
     {
         while (true)
         {
@@ -24,7 +24,7 @@ public class HttpServer
                 using StreamReader reader = new StreamReader(stream);
                 using StreamWriter writer = new StreamWriter(stream);
                 HandleRequest requestHandler = new HandleRequest();
-                requestHandler.ProcessRequest(reader, writer);
+                await requestHandler.ProcessRequest(reader, writer);
             }
         }
     }
