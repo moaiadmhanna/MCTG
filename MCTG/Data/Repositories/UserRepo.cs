@@ -77,15 +77,7 @@ public class UserRepo
                         JOIN cards AS c ON us.card_id = c.id
                         WHERE us.user_id = @userID;
                         ";
-                        await GetUserStackOrDeck(user, stackQuery,'s',userId);
-                        const string deckQuery = @"
-                        SELECT c.name, c.type, c.element_type, c.damage, ud.quantity, c.monster_type
-                        FROM userdeck AS ud
-                        JOIN userstack AS us ON ud.user_stack_id = us.id
-                        JOIN cards AS c ON us.card_id = c.id
-                        WHERE us.user_id = @userID;
-                        ";
-                        await GetUserStackOrDeck(user, deckQuery,'d',userId);
+                        await GetUserStackOrDeck(user, stackQuery,userId);
                         return user;
                     }
                 }
@@ -115,7 +107,7 @@ public class UserRepo
         }
     }
 
-    private async Task GetUserStackOrDeck(User user, string query, char where, Guid? userId)
+    private async Task GetUserStackOrDeck(User user, string query, Guid? userId)
     {
         if (userId == null) return;
         using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
@@ -133,22 +125,37 @@ public class UserRepo
                         var elementType = reader.GetString(reader.GetOrdinal("element_type"));
                         var damage = reader.GetInt32(reader.GetOrdinal("damage"));
                         var quantity = reader.GetInt32(reader.GetOrdinal("quantity"));
-                        var monsterType = reader.GetString(reader.GetOrdinal("monster_type"));
-                        var monster = (TypeOfMonster)Enum.Parse(typeof(TypeOfMonster), monsterType);
                         var element = (ElementType)Enum.Parse(typeof(ElementType), elementType);
                         Card newCard;
                         // Create a monsterCard type or Spell according to the type
                         if (type == "monster")
+                        {
+                            var monsterType = reader.GetString(reader.GetOrdinal("monster_type"));
+                            var monster = (TypeOfMonster)Enum.Parse(typeof(TypeOfMonster), monsterType);
                             newCard = new MonsterCard(name, damage, element, monster);
+                        }
                         else newCard = new SpellCard(name, damage, element);
                         // if a card quantity more than 1
                         for (var cnt = 0; cnt < quantity; cnt++)
-                            if (where == 's')
-                                user.UserStack.AddCardToStack(newCard);
-                            else
-                                user.UserDeck.AddCardToDeck(newCard);
+                            user.UserStack.AddCardToStack(newCard);
                     }
                 }
+            }
+        }
+    }
+
+    public async Task UpdateCoins(int coins,string username)
+    {
+        Guid userId = await GetUserId(username);
+        const string updateQuery = "UPDATE users SET coins = coins - @coins WHERE id = @userId";
+        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
+        {
+            await connection.OpenAsync();
+            using (NpgsqlCommand command = new NpgsqlCommand(updateQuery, connection))
+            {
+                command.Parameters.AddWithValue("@coins", coins);
+                command.Parameters.AddWithValue("@userId", userId);
+                command.ExecuteNonQuery();
             }
         }
     }

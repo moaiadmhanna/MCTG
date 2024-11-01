@@ -11,7 +11,7 @@ public class LoginService
     private PasswordService PasswordService = new PasswordService();
     private UserRepo _userRepo = new UserRepo();
     private TokenRepo _tokenRepo = new TokenRepo();
-    public async Task<string> LoginUser(string username, string password)
+    public async Task<string?> LoginUser(string username, string password)
     {
         if (await _userRepo.UserExists(username))
         {
@@ -29,9 +29,9 @@ public class LoginService
                 }
                 return await IsLoggedIn(userId); // return the token
             }
-            throw new ValidationException("Invalid username or password");
         }
-        throw new ArgumentException("User does not exist");
+        Console.WriteLine("User does not exist");
+        return null;
     }
     private string GenerateToken(string username)
     {

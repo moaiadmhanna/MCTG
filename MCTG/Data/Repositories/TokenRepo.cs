@@ -29,7 +29,7 @@ public class TokenRepo
                         DateTime expiresAt = reader.GetDateTime(reader.GetOrdinal("expires_at"));
                         if(expiresAt > currentTime)
                             return true;
-                        int tokenId = reader.GetInt32(reader.GetOrdinal("tokenid"));
+                        int tokenId = reader.GetInt32(reader.GetOrdinal("id"));
                         await DeleteToken(tokenId);
                     }
                     return false;
@@ -40,7 +40,7 @@ public class TokenRepo
 
     private async Task DeleteToken(int tokenid)
     {
-        const string deleteQuery = "DELETE FROM usertokens WHERE TokenId = @tokenId";
+        const string deleteQuery = "DELETE FROM usertokens WHERE id = @tokenId";
         using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
         {
             await connection.OpenAsync();

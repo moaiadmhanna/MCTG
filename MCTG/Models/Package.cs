@@ -9,11 +9,7 @@ public class Package
 
     public Package()
     {
-        for (int count = 0; count < PackageSize; count++)
-        {
-            Card randomCard = Database.GetRandomCard();
-            Cards.Add(randomCard);
-        }
+        //
     }
 
 }

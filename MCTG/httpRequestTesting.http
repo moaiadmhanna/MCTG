@@ -6,9 +6,6 @@ Content-Type: application/json
   "Username": "kienboec",
   "Password": "daniel"
 }
-
-> // Expected: HTTP 201 - User created
-
 ###
 
 ### Should succeed - Create user "altenhof"
@@ -53,7 +50,6 @@ Content-Type: application/json
   "Password": "daniel"
 }
 ###
-
 ### Login user "altenhof"
 POST http://localhost:10001/sessions
 Content-Type: application/json
@@ -62,4 +58,13 @@ Content-Type: application/json
   "Username": "altenhof",
   "Password": "markus"
 }
+###
+### Parchrase Pakage for the user "altenhof"
+POST http://localhost:10001/package
+Content-Type: application/json
+
+{
+  "Token": "fJynEzAwj0YmYnRTEc2SEviaAubpzdo020nkTSnv114="
+}
+###
 

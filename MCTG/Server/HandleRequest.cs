@@ -20,10 +20,6 @@ public class HandleRequest
         {
             //TODO Put Method for the Battle Service
             case "GET":
-                if (path == "/package")
-                {
-                    await HandlePackage(reader,writer,requestBody);
-                }
                 break;
             case "POST":
                 if (path == "/sessions")
@@ -33,6 +29,10 @@ public class HandleRequest
                 else if (path == "/users")
                 {
                     await HandleRegister(reader,writer, requestBody);
+                }
+                else if (path == "/package")
+                {
+                    await HandlePackage(reader,writer,requestBody);
                 }
                 break;
         }
@@ -133,8 +133,11 @@ public class HandleRequest
                 string username = usernameValue.ToString();
                 string password = passwordValue.ToString();
                 LoginService loginService = new LoginService();
-                string token = await loginService.LoginUser(username, password);
-                await SendResponse(writer, "200 OK", $"Login successful. token generated: {token}");
+                string? token = await loginService.LoginUser(username, password);
+                if(token != null)
+                    await SendResponse(writer, "200 OK", $"Login successful. token generated: {token}");
+                else 
+                    await SendResponse(writer,"400 Bad Request", "Invalid username or password.");
             }
             else
             {
@@ -166,11 +169,13 @@ public class HandleRequest
                 User? user = await loginService.GetUser(token);
                 if (user == null)
                 {
-                    await SendResponse(writer,"404 Error","There is no valid User");
+                    await SendResponse(writer,"400 Bad Request","There is no valid User");
                     return;
                 }
-                packageService.PurchasePackage(user);
-                await SendResponse(writer, "200 OK", "Package purchased successfully.");
+                if(await packageService.PurchasePackage(user))
+                    await SendResponse(writer, "200 OK", "Package purchased successfully.");
+                else
+                    await SendResponse(writer,"400 Bad Request","Package not purchased.");
             }
             else
             {
