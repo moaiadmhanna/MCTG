@@ -96,13 +96,13 @@ public class CardRepo
         }
     }
 
-    public async Task UpdateUserStack(string username, string cardName)
+    public async Task UpdateUserStackOrDeck(string username, string cardName, string type)
     {
         Guid cardId = await GetCardId(cardName);
         bool cardExist = await CardExistsInUserStack(cardId);
-        const string updateQuery = "UPDATE userstack SET quantity = quantity + 1 WHERE card_id = @card_id";
+        string updateQuery = $"UPDATE {type} SET quantity = quantity + 1 WHERE card_id = @card_id";
         Guid userId = await _userRepo.GetUserId(username);
-        const string insertQuery = "INSERT INTO userstack(user_id,card_id,quantity) VALUES(@user_id,@card_id,@quantity)";
+        string insertQuery = $"INSERT INTO {type}(user_id,card_id,quantity) VALUES(@user_id,@card_id,@quantity)";
         using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
         {
             await connection.OpenAsync();
@@ -110,7 +110,7 @@ public class CardRepo
             {
                 using (NpgsqlCommand command = new NpgsqlCommand(updateQuery, connection))
                 {
-                    command.Parameters.AddWithValue("@card_id", cardId);
+                    command.Parameters.AddWithValue("card_id", cardId);
                     command.ExecuteNonQuery();
                 }
             }

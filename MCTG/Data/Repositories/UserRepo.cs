@@ -77,7 +77,15 @@ public class UserRepo
                         JOIN cards AS c ON us.card_id = c.id
                         WHERE us.user_id = @userID;
                         ";
-                        await GetUserStackOrDeck(user, stackQuery,userId);
+                        await GetUserStackOrDeck(user, stackQuery,userId,'S');
+                        const string deckQuery = @"
+                        SELECT c.name, c.type, c.element_type, c.damage, ud.quantity, c.monster_type
+                        FROM userdeck AS ud
+                        JOIN userstack AS us ON ud.user_stack_id = us.id
+                        JOIN cards AS c ON us.card_id = c.id
+                        WHERE us.user_id = @userID;
+                        ";
+                        await GetUserStackOrDeck(user, deckQuery,userId,'D');
                         return user;
                     }
                 }
@@ -107,7 +115,7 @@ public class UserRepo
         }
     }
 
-    private async Task GetUserStackOrDeck(User user, string query, Guid? userId)
+    private async Task GetUserStackOrDeck(User user, string query, Guid? userId, char where)
     {
         if (userId == null) return;
         using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
@@ -137,7 +145,10 @@ public class UserRepo
                         else newCard = new SpellCard(name, damage, element);
                         // if a card quantity more than 1
                         for (var cnt = 0; cnt < quantity; cnt++)
-                            user.UserStack.AddCardToStack(newCard);
+                            if(where == 'S')
+                                user.UserStack.AddCardToStack(newCard);
+                            else
+                                user.UserDeck.AddCardToDeck(newCard);
                     }
                 }
             }

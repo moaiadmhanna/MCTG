@@ -61,10 +61,7 @@ Content-Type: application/json
 ###
 ### Parchrase Pakage for the user "altenhof"
 POST http://localhost:10001/package
-Content-Type: application/json
+Authorization: Bearer lpaR92ifRLLVMqZksJo6M8PFUjoMUrdxeench1fyIpY=
 
-{
-  "Token": "fJynEzAwj0YmYnRTEc2SEviaAubpzdo020nkTSnv114="
-}
-###
+
 

@@ -15,7 +15,6 @@ public class HandleRequest
         }
         string method = requestParts[0]; // The HTTP method
         string path = requestParts[1];   // The requested path
-        string requestBody = await ReadRequestBody(reader);
         switch (method)
         {
             //TODO Put Method for the Battle Service
@@ -24,15 +23,15 @@ public class HandleRequest
             case "POST":
                 if (path == "/sessions")
                 {
-                    await HandleLogin(reader, writer, requestBody);
+                    await HandleLogin(reader, writer);
                 }
                 else if (path == "/users")
                 {
-                    await HandleRegister(reader,writer, requestBody);
+                    await HandleRegister(reader,writer);
                 }
                 else if (path == "/package")
                 {
-                    await HandlePackage(reader,writer,requestBody);
+                    await HandlePackage(reader,writer);
                 }
                 break;
         }
@@ -71,6 +70,29 @@ public class HandleRequest
         }
         return body.ToString();
     }
+    public async Task<string?> ReadToken(StreamReader reader)
+    {
+        string? line;
+        string? token = null;
+
+        while (!string.IsNullOrWhiteSpace(line = await reader.ReadLineAsync()))
+        {
+            // Parse the header
+            if (line.StartsWith("Authorization:", StringComparison.OrdinalIgnoreCase))
+            {
+                // Split on the space to get the token after "Bearer "
+                var parts = line.Split(' ', 2);
+                if (parts.Length == 2)
+                {
+                    parts = parts[1].Split(' ', 2);
+                    if(parts[0].Equals("Bearer", StringComparison.OrdinalIgnoreCase))
+                        token = parts[1]; // Get the token
+                }
+            }
+            // You can store other headers here if necessary
+        }
+        return token; // Return the extracted token
+    }
 
     public async Task SendResponse(StreamWriter writer, string status, string body)
     {
@@ -82,11 +104,12 @@ public class HandleRequest
         await writer.WriteLineAsync(body);
         await writer.FlushAsync();
     }
-    public async Task HandleRegister(StreamReader reader, StreamWriter writer, string requestBody)
+    public async Task HandleRegister(StreamReader reader, StreamWriter writer)
     {
         Console.WriteLine("Register request...");
         try
         {
+            string requestBody = await ReadRequestBody(reader);
             var registerRequest = JsonSerializer.Deserialize<Dictionary<string, object>>(requestBody);
             if (registerRequest != null)
             {
@@ -116,11 +139,12 @@ public class HandleRequest
         }
     }
 
-    public async Task HandleLogin(StreamReader reader, StreamWriter writer, string requestBody)
+    public async Task HandleLogin(StreamReader reader, StreamWriter writer)
     {
         Console.WriteLine("Login request...");
         try
         {
+            string requestBody = await ReadRequestBody(reader);
             var loginRequest = JsonSerializer.Deserialize<Dictionary<string,object>>(requestBody);
             if (loginRequest != null)
             {
@@ -150,20 +174,14 @@ public class HandleRequest
         }
     }
 
-    public async Task HandlePackage(StreamReader reader, StreamWriter writer,string requestBody)
+    public async Task HandlePackage(StreamReader reader, StreamWriter writer)
     {
         Console.WriteLine("Package request...");
         try
         {
-            var packageRequest = JsonSerializer.Deserialize<Dictionary<string,object>>(requestBody);
-            if (packageRequest != null)
+            string? token = await ReadToken(reader);
+            if (token != null)
             {
-                if (!packageRequest.TryGetValue("Token", out var tokenValue))
-                {
-                    await SendResponse(writer, "400 Bad Request", "Token is required.");
-                    return;
-                }
-                string token = tokenValue.ToString();
                 PackageService packageService = new PackageService();
                 LoginService loginService = new LoginService();
                 User? user = await loginService.GetUser(token);
@@ -179,7 +197,7 @@ public class HandleRequest
             }
             else
             {
-                await SendResponse(writer, "400 Bad Request", "Invalid JSON format.");
+                await SendResponse(writer, "400 Bad Request", "Invalid Token.");
             }
         }
         catch (JsonException ex)
