@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using MCTG.Data;
+using MCTG.Data.Repositories;
 
 namespace MCTG.Services;
 
@@ -17,23 +18,22 @@ public class BattleService
     private Deck _player2Deck;
     private const int Rounds = 100;
     private static int _currentRound = 1;
+    private readonly UserRepo _userRepo = new UserRepo();
     
-    public void StartBattle(string player1, string player2)
+    public async Task StartBattle(User player1, User player2)
     {
         //TODO should take the two players as parameter and not the name of the PLayer
-        if (!Database.UserExists(player1) || !Database.UserExists(player2))
+        if (!await _userRepo.UserExists(player1.UserName) || !await _userRepo.UserExists(player2.UserName))
         {
             throw new ArgumentException("Users dont exist");
         }
-        Player1 = Database.GetUser(player1);
-        Player2 = Database.GetUser(player2);
+        Player1 = player1;
+        Player2 = player2;
         _player1Deck = Player1.UserDeck;
         _player2Deck = Player2.UserDeck;
         Random random = new Random();
         while (_currentRound < Rounds && !GameOver())
         {
-            //TODO it should return if the round exceeded the Max Round
-            //Thread.Sleep(2000);
             Card player1Card = _player1Deck.GetCard(random.Next(_player1Deck.Count()));
             Card player2Card = _player2Deck.GetCard(random.Next(_player2Deck.Count()));
             Attack(player1Card, player2Card);
@@ -143,6 +143,7 @@ public class BattleService
                 Player1.UpdateElo(-5);
             }
             return true;
+            //TODO The deck of players should also change in the db
         }
         return false;
     }

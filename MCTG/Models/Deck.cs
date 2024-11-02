@@ -3,12 +3,12 @@ namespace MCTG;
 public class Deck
 {
     private readonly List<Card> _cards = new List<Card>();
-    private const int MaxCards = 100;
-    private readonly int MinCards = 100;
+    private const int MaxCards = 4;
     
     public void AddCardToDeck(Card card)
     {
-        _cards.Add(card);
+        if(Count() < MaxCards)
+            _cards.Add(card);
     }
 
     public void RemoveCardFromCard(Card card)
