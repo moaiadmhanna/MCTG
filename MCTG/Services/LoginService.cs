@@ -15,7 +15,7 @@ public class LoginService
     {
         if (await _userRepo.UserExists(username))
         {
-            Guid userId = await _userRepo.GetUserId(username);
+            Guid? userId = await _userRepo.GetUserId(username);
             User? loginUser = await _userRepo.GetUser(userId);
             
             if (PasswordService.ValidatePassword(loginUser.Password, password,loginUser.Salt))
@@ -48,7 +48,7 @@ public class LoginService
             return null;
         return await _userRepo.GetUser(userId);
     }
-    private async Task<string> IsLoggedIn(Guid userId)
+    private async Task<string> IsLoggedIn(Guid? userId)
     {
         return await _tokenRepo.GetToken(userId);
     }
