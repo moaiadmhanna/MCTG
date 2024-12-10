@@ -12,10 +12,8 @@
 /dataSources/
 /dataSources.local.xml
 ## Ignore files from the build process
-MCTG/bin
-MCTG/obj
-MCTG_UnitTest/bin
-MCTG_UnitTest/obj
+*/bin
+*/obj
 # Ignore Rider/JetBrains settings
 .idea/
 *.sln.iml
