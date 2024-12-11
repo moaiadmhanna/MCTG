@@ -1,5 +1,5 @@
 using MCTG.Services;
-
+// TODO after Modifying the Battle Logic this Class should be deleted
 namespace MCTG.Data;
 
 public class Database

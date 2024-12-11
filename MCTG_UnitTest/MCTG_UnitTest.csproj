@@ -21,4 +21,8 @@
         <Using Include="NUnit.Framework"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\MCTG\MCTG.csproj" />
+    </ItemGroup>
+
 </Project>
