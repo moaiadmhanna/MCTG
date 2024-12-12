@@ -2,169 +2,101 @@ using Npgsql;
 
 namespace MCTG.Data.Repositories;
 
-public class CardRepo
+public class CardRepo : BaseRepo
 {
-    private readonly string _connectionString;
     private UserRepo _userRepo = new UserRepo();
-
-    public CardRepo()
+    public async Task<Card?> GetRandomCard()
     {
-        _connectionString = DatabaseConf.ConnectionString;
-    }
+        const string searchQuery = "SELECT * FROM cards";
+        long numberOfCards = await GetNumberOfCards();
+        if (numberOfCards == 0)
+            return null;
 
-    public async Task<Card> GetRandomCard()
-    {
-        const string searchQuery = "SELECT * FROM cards WHERE quantity > 0";
-        Card newCard = null;
-        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
+        Random random = new Random();
+        int randomCardNumber = random.Next(1, (int)numberOfCards + 1);
+
+        Card? selectedCard = null;
+        int cnt = 1;
+        await ExecuteReaderAsync(searchQuery, async reader =>
         {
-            await connection.OpenAsync();
-            using (NpgsqlCommand command = new NpgsqlCommand(searchQuery, connection))
+            if (cnt == randomCardNumber)
             {
-                using (NpgsqlDataReader reader = await command.ExecuteReaderAsync())
-                {
-                    int numberOfCards = await GetNumberOfCards();
-                    Random random = new Random();
-                    int randomCardNumber = random.Next(1, numberOfCards + 1);
-                    int cnt = 1;
-                    while (await reader.ReadAsync())
-                    {
-                        if (cnt == randomCardNumber)
-                        {
-                            var id = reader.GetGuid(reader.GetOrdinal("id"));
-                            var name = reader.GetString(reader.GetOrdinal("name"));
-                            var type = reader.GetString(reader.GetOrdinal("type"));
-                            var elementType = reader.GetString(reader.GetOrdinal("element_type"));
-                            var damage = reader.GetInt32(reader.GetOrdinal("damage"));
-                            var element = (ElementType)Enum.Parse(typeof(ElementType), elementType);
-                            if (type == "monster")
-                            {
-                                var monsterType = reader.GetString(reader.GetOrdinal("monster_type"));
-                                var monster = (TypeOfMonster)Enum.Parse(typeof(TypeOfMonster), monsterType);
-                                newCard = new MonsterCard(name, damage, element, monster);
-                            }
-                            else newCard = new SpellCard(name, damage, element);
-                            await UpdateCardQuantity(id);
-                            break;
-                        }
-                        cnt++;
-                    }
-                }
+                selectedCard = CardFromReader(reader);
+                var id = reader.GetGuid(reader.GetOrdinal("id"));
+                int quantity = reader.GetInt32(reader.GetOrdinal("quantity"));
+                if (quantity - 1 < 0)
+                    await DeleteCard(id);
+                else
+                    await UpdateCardQuantity(id);
             }
-        }
-        return newCard;
+            cnt++;
+        });
+        return selectedCard;
     }
 
     private async Task UpdateCardQuantity(Guid id)
     {
         const string updateQuery = "UPDATE cards SET quantity = quantity - 1 WHERE id = @id";
-        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
-        {
-            await connection.OpenAsync();
-            using (NpgsqlCommand command = new NpgsqlCommand(updateQuery, connection))
-            {
-                command.Parameters.AddWithValue("@id", id);
-                command.ExecuteNonQuery();
-            }
-        }
+        await ExecuteNonQueryAsync(updateQuery, new Dictionary<string, object> { { "@id", id } });
     }
     private async Task DeleteCard(Guid id)
     {
         const string deleteQuery = "DELETE FROM cards WHERE id=@id";
-        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
-        {
-            await connection.OpenAsync();
-            using (NpgsqlCommand command = new NpgsqlCommand(deleteQuery, connection))
-            {
-                command.Parameters.AddWithValue("@id", id);
-                command.ExecuteNonQuery();
-            }
-        }
+        await ExecuteNonQueryAsync(deleteQuery, new Dictionary<string, object> { { "@id", id } });
     }
-    public async Task<int> GetNumberOfCards()
+    public async Task<long> GetNumberOfCards()
     {
         const string searchQuery = "SELECT COUNT(*) FROM cards WHERE quantity > 0";
-        using(NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
-        {
-            await connection.OpenAsync();
-            using (NpgsqlCommand command = new NpgsqlCommand(searchQuery, connection))
-            {
-                var res =  await command.ExecuteScalarAsync();
-                int count = Convert.ToInt32(res);
-                return count;
-            }
-        }
+        return await ExecuteScalarAsync<long>(searchQuery);
     }
 
-    public async Task UpdateUserStack(string username, string cardName)
+    public async Task UpdateUserStackOrDeck(string username, string cardName, string type)
     {
-        Guid cardId = await GetCardId(cardName);
+        Guid? cardId = await GetCardId(cardName);
         bool cardExist = await CardExistsInUserStack(cardId);
-        const string updateQuery = "UPDATE userstack SET quantity = quantity + 1 WHERE card_id = @card_id";
-        Guid userId = await _userRepo.GetUserId(username);
-        const string insertQuery = "INSERT INTO userstack(user_id,card_id,quantity) VALUES(@user_id,@card_id,@quantity)";
-        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
-        {
-            await connection.OpenAsync();
-            if (cardExist)
-            {
-                using (NpgsqlCommand command = new NpgsqlCommand(updateQuery, connection))
-                {
-                    command.Parameters.AddWithValue("@card_id", cardId);
-                    command.ExecuteNonQuery();
-                }
-            }
-            else
-            {
-                using (NpgsqlCommand command = new NpgsqlCommand(insertQuery, connection))
-                {
-                    command.Parameters.AddWithValue("user_id", userId);
-                    command.Parameters.AddWithValue("card_id", cardId);
-                    command.Parameters.AddWithValue("quantity", 1);
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
-
+        string updateQuery = $"UPDATE {type} SET quantity = quantity + 1 WHERE card_id = @card_id";
+        Guid? userId = await _userRepo.GetUserId(username);
+        if(userId == null)
+            return;
+        string insertQuery = $"INSERT INTO {type}(user_id,card_id,quantity) VALUES(@user_id,@card_id,@quantity)";
+        if (cardExist)
+            await ExecuteNonQueryAsync(updateQuery, new Dictionary<string, object> { { "@card_id", cardId } });
+        else
+            await ExecuteNonQueryAsync(insertQuery, new Dictionary<string, object> { {"user_id",userId},{ "@card_id", cardId }, {"quantity", 1}});
     }
 
-    private async Task<Guid> GetCardId(string cardName)
+    private async Task<Guid?> GetCardId(string cardName)
     {
         const string searchQuery = "SELECT id FROM cards WHERE name = @name";
-        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
+        Guid? id = null;
+        await ExecuteReaderAsync(searchQuery, async reader =>
         {
-            await connection.OpenAsync();
-            using (NpgsqlCommand command = new NpgsqlCommand(searchQuery, connection))
-            {
-                command.Parameters.AddWithValue("@name", cardName);
-                using (NpgsqlDataReader reader = await command.ExecuteReaderAsync())
-                {
-                    await reader.ReadAsync();
-                    return reader.GetGuid(reader.GetOrdinal("id"));
-                }
-            }
-        }
+            id = reader.GetGuid(reader.GetOrdinal("id"));
+        },
+            new Dictionary<string, object> {{ "@name", cardName }});
+        return id;
     }
 
-    private async Task<bool> CardExistsInUserStack(Guid id)
+    private async Task<bool> CardExistsInUserStack(Guid? id)
     {
-        const string searchQuery = "SELECT * FROM userstack WHERE card_id = @id";
-        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
-        {
-            await connection.OpenAsync();
-            using (NpgsqlCommand command = new NpgsqlCommand(searchQuery, connection))
-            {
-                command.Parameters.AddWithValue("id", id);
-                using (NpgsqlDataReader reader = await command.ExecuteReaderAsync())
-                {
-                    if (await reader.ReadAsync())
-                    {
-                        return true;
-                    }
+        const string searchQuery = "SELECT COUNT(1) FROM userstack WHERE card_id = @id";
+        long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "id", id } });
+        return count > 0;
+    }
 
-                    return false;
-                }
-            }
+    private Card CardFromReader(NpgsqlDataReader reader)
+    {
+        var name = reader.GetString(reader.GetOrdinal("name"));
+        var type = reader.GetString(reader.GetOrdinal("type"));
+        var elementType = reader.GetString(reader.GetOrdinal("element_type"));
+        var damage = reader.GetInt32(reader.GetOrdinal("damage"));
+        var element = (ElementType)Enum.Parse(typeof(ElementType), elementType);
+        if (type == "monster")
+        {
+            var monsterType = reader.GetString(reader.GetOrdinal("monster_type"));
+            var monster = (TypeOfMonster)Enum.Parse(typeof(TypeOfMonster), monsterType);
+            return new MonsterCard(name, damage, element, monster);
         }
+        return new SpellCard(name, damage, element);
     }
 }

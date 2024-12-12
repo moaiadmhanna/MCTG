@@ -2,107 +2,57 @@ using Npgsql;
 
 namespace MCTG.Data.Repositories;
 
-public class TokenRepo
+public class TokenRepo : BaseRepo
 {
-    private readonly string _connectionString;
-
-    public TokenRepo()
+    public async Task<bool> HasToken(Guid? userId)
     {
-        _connectionString = DatabaseConf.ConnectionString;
-    }
-
-    public async Task<bool> HasToken(Guid userid)
-    {
-        const string searchQuery = "SELECT * FROM usertokens WHERE user_id = @userId";
-        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
+        const string searchQuery = "SELECT COUNT(1) FROM usertokens WHERE user_id = @userId AND expires_at > @currentTime";
+        DateTime currentTime = DateTime.UtcNow;
+    
+        long tokenCount = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object>
         {
-            await connection.OpenAsync();
-            using (NpgsqlCommand command = new NpgsqlCommand(searchQuery, connection))
-            {
-                command.Parameters.AddWithValue("@userid", userid);
-                using (NpgsqlDataReader reader = await command.ExecuteReaderAsync())
-                {
-                    // Check if there's at least one row returned
-                    if (await reader.ReadAsync())
-                    {
-                        DateTime currentTime = DateTime.UtcNow;
-                        DateTime expiresAt = reader.GetDateTime(reader.GetOrdinal("expires_at"));
-                        if(expiresAt > currentTime)
-                            return true;
-                        int tokenId = reader.GetInt32(reader.GetOrdinal("id"));
-                        await DeleteToken(tokenId);
-                    }
-                    return false;
-                }
-            }
-        }
+            { "@userId", userId },
+            { "@currentTime", currentTime }
+        });
+    
+        if (tokenCount > 0)
+            return true;
+        
+        await DeleteToken(userId);
+        return false;
     }
 
-    private async Task DeleteToken(int tokenid)
+    private async Task DeleteToken(Guid? userId)
     {
-        const string deleteQuery = "DELETE FROM usertokens WHERE id = @tokenId";
-        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
-        {
-            await connection.OpenAsync();
-            using(NpgsqlCommand command = new NpgsqlCommand(deleteQuery, connection))
-            {
-                command.Parameters.AddWithValue("@tokenId", tokenid);
-                await command.ExecuteNonQueryAsync();
-            }
-        }
+        const string deleteQuery = "DELETE FROM usertokens WHERE user_id = @userId";
+        await ExecuteNonQueryAsync(deleteQuery, new Dictionary<string, object>{{"userId", userId}});
     }
 
-    public async Task AddToken(Guid userid, string token)
+    public async Task AddToken(Guid? userid, string token)
     {
         const string insertQuery = "INSERT INTO usertokens (user_id, token) VALUES (@userid, @token)";
-        using(NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
-        {
-            await connection.OpenAsync();
-            using (NpgsqlCommand command = new NpgsqlCommand(insertQuery, connection))
-            {
-                command.Parameters.AddWithValue("@userid", userid);
-                command.Parameters.AddWithValue("@token", token);
-                await command.ExecuteNonQueryAsync();
-            }
-        }
+        await ExecuteNonQueryAsync(insertQuery,new Dictionary<string, object>{{"userid", userid}, {"token", token}});
     }
 
-    public async Task<string> GetToken(Guid userid)
+    public async Task<string?> GetToken(Guid? userid)
     {
         const string searchQuery = "SELECT token FROM usertokens WHERE user_id = @userId";
-        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
+        string? token = null;
+        await ExecuteReaderAsync(searchQuery, async reader =>
         {
-            await connection.OpenAsync();
-            using (NpgsqlCommand command = new NpgsqlCommand(searchQuery, connection))
-            {
-                command.Parameters.AddWithValue("@userId", userid);
-                using (NpgsqlDataReader reader = await command.ExecuteReaderAsync())
-                {
-                    await reader.ReadAsync();
-                    return reader.GetString(reader.GetOrdinal("token"));
-                }
-            }
-        }
+            token = reader.GetString(reader.GetOrdinal("token"));
+        },new Dictionary<string, object>{{"userId", userid}});
+        return token;
     }
 
     public async Task<Guid?> GerUserUid(string token)
     {
         const string searchQuery = "SELECT user_id FROM usertokens WHERE token = @token";
-        using (NpgsqlConnection connection = new NpgsqlConnection(_connectionString))
+        Guid? userUid = null;
+        await ExecuteReaderAsync(searchQuery, async reader =>
         {
-            await connection.OpenAsync();
-            using (NpgsqlCommand command = new NpgsqlCommand(searchQuery, connection))
-            {
-                command.Parameters.AddWithValue("@token", token);
-                using (NpgsqlDataReader reader = await command.ExecuteReaderAsync())
-                {
-                    if (await reader.ReadAsync())
-                    {
-                        return reader.GetGuid(reader.GetOrdinal("user_id"));
-                    }
-                    return null;
-                }
-            }
-        }
+            userUid = reader.GetGuid(reader.GetOrdinal("user_id"));
+        },new Dictionary<string, object>{{"token", token}});
+        return userUid;
     }
 }

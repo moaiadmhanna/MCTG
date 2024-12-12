@@ -3,7 +3,8 @@ using MCTG.Data;
 using MCTG.Data.Repositories;
 
 namespace MCTG.Services;
-
+// TODO Change the Battle Service to work with the Database
+// TODO Create the UML Sequence Diagram
 enum Effectiveness
 {
     IsEffective,

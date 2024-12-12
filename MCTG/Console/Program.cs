@@ -13,8 +13,8 @@ class Program
     static async Task Main(string[] args)
     {
         DatabaseConf databaseConf = new DatabaseConf("localhost", "admin","adminIf23b191","mctg");
-        DatabaseInitializer db = new DatabaseInitializer();
-        db.InitializeDB();
+        //DatabaseInitializer db = new DatabaseInitializer();
+        //db.InitializeDB();
         HttpServer server = new HttpServer(IPAddress.Any, 10001);
         await server.Listen();
         //Testing the DB Initializer
