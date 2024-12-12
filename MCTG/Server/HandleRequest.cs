@@ -5,6 +5,10 @@ using MCTG.Services;
 namespace MCTG.Server;
 public class HandleRequest
 {
+    private readonly LoginService _loginService = new LoginService();
+    private readonly BattleService _battleService = new BattleService();
+    private readonly RegisterService _registerService = new RegisterService();
+    private readonly PackageService _packageService = new PackageService();
     public async Task ProcessRequest(StreamReader reader, StreamWriter writer)
     {
         string requestLine = await reader.ReadLineAsync();
@@ -89,7 +93,6 @@ public class HandleRequest
                         token = parts[1]; // Get the token
                 }
             }
-            // You can store other headers here if necessary
         }
         return token; // Return the extracted token
     }
@@ -122,8 +125,7 @@ public class HandleRequest
                 }
                 string username = usernameValue.ToString();
                 string password = passwordValue.ToString();
-                RegisterService registerService = new RegisterService();
-                if(await registerService.RegisterUser(username, password))
+                if(await _registerService.RegisterUser(username, password))
                     await SendResponse(writer, "200 OK", "User registered successfully.");
                 else
                     await SendResponse(writer, "400 Bad Request", "User not registered.");
@@ -156,8 +158,7 @@ public class HandleRequest
                 }
                 string username = usernameValue.ToString();
                 string password = passwordValue.ToString();
-                LoginService loginService = new LoginService();
-                string? token = await loginService.LoginUser(username, password);
+                string? token = await _loginService.LoginUser(username, password);
                 if(token != null)
                     await SendResponse(writer, "200 OK", $"Login successful. token generated: {token}");
                 else 
@@ -182,15 +183,13 @@ public class HandleRequest
             string? token = await ReadToken(reader);
             if (token != null)
             {
-                PackageService packageService = new PackageService();
-                LoginService loginService = new LoginService();
-                User? user = await loginService.GetUser(token);
+                User? user = await _loginService.GetUser(token);
                 if (user == null)
                 {
                     await SendResponse(writer,"400 Bad Request","There is no valid User");
                     return;
                 }
-                if(await packageService.PurchasePackage(user))
+                if(await _packageService.PurchasePackage(user))
                     await SendResponse(writer, "200 OK", "Package purchased successfully.");
                 else
                     await SendResponse(writer,"400 Bad Request","Package not purchased.");
