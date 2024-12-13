@@ -12,14 +12,16 @@ public abstract class BaseRepo
     }
     protected async Task<int> ExecuteNonQueryAsync(string query, Dictionary<string, object>? parameters = null)
     {
-        await using var command = await OpenCommandAsync(query);
+        await using var connection = await OpenConnectionAsync();
+        await using var command = new NpgsqlCommand(query,connection);
         AddParameters(command, parameters);
         return await command.ExecuteNonQueryAsync();
     }
 
     protected async Task<T?> ExecuteScalarAsync<T>(string query, Dictionary<string, object>? parameters = null)
     {
-        await using var command = await OpenCommandAsync(query);
+        await using var connection = await OpenConnectionAsync();
+        await using var command = new NpgsqlCommand(query,connection);
         AddParameters(command, parameters);
         var result = await command.ExecuteScalarAsync();
         return result == DBNull.Value ? default : (T?)result;
@@ -27,7 +29,8 @@ public abstract class BaseRepo
 
     protected async Task ExecuteReaderAsync(string query, Func<NpgsqlDataReader, Task> handleRow, Dictionary<string, object>? parameters = null)
     {
-        await using var command = await OpenCommandAsync(query);
+        await using var connection = await OpenConnectionAsync();
+        await using var command = new NpgsqlCommand(query,connection);
         AddParameters(command, parameters);
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
@@ -45,11 +48,10 @@ public abstract class BaseRepo
         }
     }
 
-    private async Task<NpgsqlCommand> OpenCommandAsync(string query)
+    private async Task<NpgsqlConnection> OpenConnectionAsync()
     {
         var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
-        var command = new NpgsqlCommand(query, connection);
-        return command;
+        return connection;
     }
 }

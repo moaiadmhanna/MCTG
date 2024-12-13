@@ -6,11 +6,12 @@ namespace MCTG.Server;
 public class HandleRequest
 {
     private readonly LoginService _loginService = new LoginService();
-    private readonly BattleService _battleService = new BattleService();
     private readonly RegisterService _registerService = new RegisterService();
     private readonly PackageService _packageService = new PackageService();
-    public async Task ProcessRequest(StreamReader reader, StreamWriter writer)
+    private BattleService _battleService;
+    public async Task ProcessRequest(StreamReader reader, StreamWriter writer,BattleService battleService)
     {
+        _battleService = battleService;
         string requestLine = await reader.ReadLineAsync();
         string[] requestParts = requestLine.Split(" ");
         if (requestParts.Length < 3)
@@ -37,9 +38,15 @@ public class HandleRequest
                 {
                     await HandlePackage(reader,writer);
                 }
+                else if (path == "/battles")
+                {
+                    await HandleBattle(reader, writer);
+                }
                 break;
         }
     }
+    
+
     public async Task<string> ReadRequestBody(StreamReader reader)
     {
         string? line;
@@ -183,6 +190,7 @@ public class HandleRequest
             string? token = await ReadToken(reader);
             if (token != null)
             {
+                // TODO Should be in the Package Service
                 User? user = await _loginService.GetUser(token);
                 if (user == null)
                 {
@@ -193,6 +201,33 @@ public class HandleRequest
                     await SendResponse(writer, "200 OK", "Package purchased successfully.");
                 else
                     await SendResponse(writer,"400 Bad Request","Package not purchased.");
+            }
+            else
+            {
+                await SendResponse(writer, "400 Bad Request", "Invalid Token.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            await SendResponse(writer, "400 Bad Request", ex.Message);
+        }
+    }
+    private async Task HandleBattle(StreamReader reader, StreamWriter writer)
+    {
+        Console.WriteLine("Battle request...");
+        try
+        {
+            string? token = await ReadToken(reader);
+            if (token != null)
+            {
+                string? battleLog = await _battleService.Matchmaking(token);
+                if (battleLog != null)
+                {
+                    await SendResponse(writer, "200 OK", battleLog);
+                    Console.WriteLine(battleLog);
+                }
+                else
+                    await SendResponse(writer,"400 Bad Request","Battle cannot be started.");
             }
             else
             {

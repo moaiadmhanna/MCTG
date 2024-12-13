@@ -59,9 +59,20 @@ Content-Type: application/json
   "Password": "markus"
 }
 ###
+### Parchrase Pakage for the user "kienboec"
+POST http://localhost:10001/package
+Authorization: Bearer mRSzegDiYdLHnopyir/5Ga38hh97p7nVPk98b1gGQkw=
+
 ### Parchrase Pakage for the user "altenhof"
 POST http://localhost:10001/package
-Authorization: Bearer jpASg1XSD/buFeyKDsn9q/lHvK3hIVkoAv/8lxAjUrI=
+Authorization: Bearer eKqjugWDFKvn8zKUTUXhWzjL9XCkoMgyTacOg9tSCC8=
 
+### Begin the Battle Matchmaking "altenhof"
+POST http://localhost:10001/battles
+Authorization: Bearer mRSzegDiYdLHnopyir/5Ga38hh97p7nVPk98b1gGQkw=
+
+### Battle "kienboec" with "altenhof"
+POST http://localhost:10001/battles
+Authorization: Bearer eKqjugWDFKvn8zKUTUXhWzjL9XCkoMgyTacOg9tSCC8=
 
 
