@@ -24,9 +24,7 @@ public class CardRepo : BaseRepo
                 selectedCard = CardFromReader(reader);
                 var id = reader.GetGuid(reader.GetOrdinal("id"));
                 int quantity = reader.GetInt32(reader.GetOrdinal("quantity"));
-                if (quantity - 1 < 0)
-                    await DeleteCard(id);
-                else
+                if (quantity - 1 >= 0)
                     await UpdateCardQuantity(id);
             }
             cnt++;

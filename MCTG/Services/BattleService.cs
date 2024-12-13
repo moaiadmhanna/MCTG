@@ -29,38 +29,44 @@ enum CardStatus
 }
 public class BattleService
 {
-    // Queue for the Players
-    private Queue<User> _matchMakingQueue = new Queue<User>();
-    // private User Player1 {get; set;}
-    // private User Player2 {get; set;}
-    // private Deck _player1Deck;
-    // private Deck _player2Deck;
+    // Matchmaking Queue for the Players
+    private readonly Queue<(User User, TaskCompletionSource<string> CompletionSource)> _matchMakingQueue = new();
     private const int Rounds = 100;
-    private readonly UserRepo _userRepo = new UserRepo();
+    private readonly LoginService _loginService = new LoginService();
     
-    // Method to add the Player to the Matchmaking Queue
-    private void AddPlayerToQueue(User user)
-    {
-        _matchMakingQueue.Enqueue(user);
-    }
 
-    public string? Matchmaking()
+    public async Task<string?> Matchmaking(string token)
     {
-        //TODO Check if the User is in the DB before adding the user to Matchmaking queue + Matchmaking should take the token as parameter
-        if (_matchMakingQueue.Count > 1)
-        {
-            User player1 = _matchMakingQueue.Dequeue();
-            User player2 = _matchMakingQueue.Dequeue();
-            return StartBattle(player1, player2);
-        }
-        return null;
+        // Get the User from the _loginService
+        User? user = await _loginService.GetUser(token);
+        if (user == null)
+            return null;
+        var completionSource = new TaskCompletionSource<string>();
+            // Add the user to the queue
+            _matchMakingQueue.Enqueue((user, completionSource));
+            if (_matchMakingQueue.Count >= 2)
+            {
+                var player1 = _matchMakingQueue.Dequeue();
+                var player2 = _matchMakingQueue.Dequeue();
+
+                // Start the battle and generate the log
+                string log = StartBattle(player1.User, player2.User);
+                Console.WriteLine(log);
+
+                // Set the result for both players
+                player1.CompletionSource.SetResult(log);
+                player2.CompletionSource.SetResult(log);
+            }
+            // Return the Task associated with this player's battle result
+        return await completionSource.Task;
     }
+    
     private string StartBattle(User player1, User player2)
     {
         // Stream to Write into
-        var stream = new MemoryStream();
+        using var stream = new MemoryStream();
         var encoding = Encoding.UTF8;
-        StreamWriter writer = new StreamWriter(stream,encoding);
+        using StreamWriter writer = new StreamWriter(stream,encoding);
         Deck player1Deck = player1.UserDeck;
         Deck player2Deck = player2.UserDeck;
         Random random = new Random();
@@ -86,6 +92,8 @@ public class BattleService
             currentRound++;
         }
 
+        if (currentRound == 0)
+            return "Users did not configured there Decks";
         BattleStatus battleStatus = CheckBattleStatusAndUpdatePlayer(player1, player2);
         if (battleStatus == BattleStatus.Win)
             WriteToStream(writer,$"{player1.UserName} defeated {player2.UserName} after {currentRound} Rounds");
@@ -94,8 +102,10 @@ public class BattleService
         else
             WriteToStream(writer, $"Its a draw between {player1.UserName} and {player2.UserName} after {currentRound} Rounds");
         stream.Position = 0;
-        StreamReader reader = new StreamReader(stream,encoding);
-        return reader.ReadToEnd();
+        using (StreamReader reader = new StreamReader(stream, encoding))
+        {
+            return reader.ReadToEnd();
+        }
     }
     
 

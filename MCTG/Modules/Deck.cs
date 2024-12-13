@@ -3,7 +3,7 @@ namespace MCTG;
 public class Deck
 {
     private readonly List<Card> _cards = new List<Card>();
-    private const int MaxCards = 4;
+    private const int MaxCards = 5;
     
     public void AddCardToDeck(Card card)
     {

@@ -12,30 +12,42 @@ public class PackageService
 
     public async Task<bool> PurchasePackage(User user)
     {
-        string username = user.UserName;
-        if (user.Coins >= PackageCost)
+        try
         {
-            if (await _cardRepo.GetNumberOfCards() < 5)
+            string username = user.UserName;
+            if (user.Coins >= PackageCost)
             {
-                Console.WriteLine("There is not enough cards to buy");
+                if (await _cardRepo.GetNumberOfCards() < 5)
+                {
+                    Console.WriteLine("There is not enough cards to buy");
+                    return false;
+                }
+
+                Console.WriteLine($"Purchased package for user {username}");
+                for (int cardCount = 0; cardCount < PackageSize; cardCount++)
+                {
+                    Card newCard = await _cardRepo.GetRandomCard();
+                    user.UserStack.AddCardToStack(newCard);
+                    await _cardRepo.UpdateUserStackOrDeck(username, newCard.Name, "userstack");
+                }
+
+                user.UpdateCoins(-PackageCost);
+                await _userRepo.UpdateCoins(PackageCost, username);
+                Console.WriteLine($"The Stack of {username} has been updated");
+            }
+            else
+            {
+                Console.WriteLine($"User {username} does not have enough Coins");
                 return false;
             }
-            Console.WriteLine($"Purchased package for user {username}");
-            for (int cardCount = 0; cardCount < PackageSize; cardCount++)
-            {
-                Card newCard = await _cardRepo.GetRandomCard();
-                user.UserStack.AddCardToStack(newCard);
-                await _cardRepo.UpdateUserStackOrDeck(username, newCard.Name,"userstack");
-            }
-            user.UpdateCoins(-PackageCost);
-            await _userRepo.UpdateCoins(PackageCost,username);
-            Console.WriteLine($"The Stack of {username} has been updated");
+
+            return true;
         }
-        else
+        catch (Exception e)
         {
-            Console.WriteLine($"User {username} does not have enough Coins");
-            return false;
+            Console.WriteLine(e);
         }
-        return true;
+
+        return false;
     }
 }
