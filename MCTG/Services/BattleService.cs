@@ -4,8 +4,6 @@ using MCTG.Data;
 using MCTG.Data.Repositories;
 
 namespace MCTG.Services;
-// TODO Change the Battle Service to work with the Database
-// TODO Create the UML Sequence Diagram
 enum Effectiveness
 {
     IsEffective,
@@ -32,13 +30,14 @@ public class BattleService
     // Matchmaking Queue for the Players
     private readonly Queue<(User User, TaskCompletionSource<string> CompletionSource)> _matchMakingQueue = new();
     private const int Rounds = 100;
-    private readonly LoginService _loginService = new LoginService();
+    private readonly TokenRepo _tokenRepo = new();
+    private readonly UserRepo _userRepo = new();
     
 
     public async Task<string?> Matchmaking(string token)
     {
         // Get the User from the _loginService
-        User? user = await _loginService.GetUser(token);
+        User? user = await GetUser(token);
         if (user == null)
             return null;
         var completionSource = new TaskCompletionSource<string>();
@@ -192,18 +191,21 @@ public class BattleService
 
     private BattleStatus CheckBattleStatusAndUpdatePlayer(User player1, User player2)
     {
-        // TODO Update Also in the DB
         if (player1.UserDeck.Count() == 0)
         {
-            player1.UpdateElo(3);
-            player2.UpdateElo(-5);
+            player1.UpdateElo(-5);
+            player2.UpdateElo(3);
+            _userRepo.UpdateElo(-5, player1.UserName);
+            _userRepo.UpdateElo(3, player2.UserName);
             return BattleStatus.Lose;
         }
 
         if (player2.UserDeck.Count() == 0)
         {
-            player2.UpdateElo(3);
-            player1.UpdateElo(-5);
+            player2.UpdateElo(-5);
+            player1.UpdateElo(3);
+            _userRepo.UpdateElo(3, player1.UserName);
+            _userRepo.UpdateElo(-5, player2.UserName);
             return BattleStatus.Win;
         }
 
@@ -214,6 +216,13 @@ public class BattleService
     {
         writer.WriteLine(message);
         writer.Flush();
+    }
+    private async Task<User?> GetUser(string token)
+    {
+        Guid? userId = await _tokenRepo.GerUserUid(token);
+        if (userId == null)
+            return null;
+        return await _userRepo.GetUser(userId);
     }
 
 }

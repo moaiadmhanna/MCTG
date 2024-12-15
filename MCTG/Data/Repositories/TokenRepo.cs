@@ -6,6 +6,8 @@ public class TokenRepo : BaseRepo
 {
     public async Task<bool> HasToken(Guid? userId)
     {
+        if (userId == null)
+            return false;
         const string searchQuery = "SELECT COUNT(1) FROM usertokens WHERE user_id = @userId AND expires_at > @currentTime";
         DateTime currentTime = DateTime.UtcNow;
     
@@ -27,6 +29,7 @@ public class TokenRepo : BaseRepo
         const string deleteQuery = "DELETE FROM usertokens WHERE user_id = @userId";
         await ExecuteNonQueryAsync(deleteQuery, new Dictionary<string, object>{{"userId", userId}});
     }
+    
 
     public async Task AddToken(Guid? userid, string token)
     {
@@ -53,6 +56,8 @@ public class TokenRepo : BaseRepo
         {
             userUid = reader.GetGuid(reader.GetOrdinal("user_id"));
         },new Dictionary<string, object>{{"token", token}});
-        return userUid;
+        if(await HasToken(userUid))
+            return userUid;
+        return null;
     }
 }

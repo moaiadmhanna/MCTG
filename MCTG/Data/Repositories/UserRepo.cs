@@ -119,4 +119,12 @@ public class UserRepo : BaseRepo
         const string updateQuery = "UPDATE users SET coins = coins - @coins WHERE id = @userId";
         await ExecuteNonQueryAsync(updateQuery,new Dictionary<string, object>{{"@coins",coins},{ "@userId", userId }});
     }
+
+    public async Task UpdateElo(int elo, string username)
+    {
+        Guid? userId = await GetUserId(username);
+        if (userId == null) return;
+        const string updateQuery = "UPDATE users SET elo = elo + @elo WHERE id = @userId";
+        await ExecuteNonQueryAsync(updateQuery,new Dictionary<string, object>{{"@elo",elo},{ "@userId", userId }});    
+    }
 }

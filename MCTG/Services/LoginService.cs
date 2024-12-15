@@ -41,13 +41,6 @@ public class LoginService
             return Convert.ToBase64String(hash);
         }
     }
-    public async Task<User?> GetUser(string token)
-    {
-        Guid? userId = await _tokenRepo.GerUserUid(token);
-        if (userId == null)
-            return null;
-        return await _userRepo.GetUser(userId);
-    }
     private async Task<string> IsLoggedIn(Guid? userId)
     {
         return await _tokenRepo.GetToken(userId);

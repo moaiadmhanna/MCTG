@@ -22,7 +22,6 @@ public class HandleRequest
         string path = requestParts[1];   // The requested path
         switch (method)
         {
-            //TODO Put Method for the Battle Service
             case "GET":
                 break;
             case "POST":
@@ -190,14 +189,10 @@ public class HandleRequest
             string? token = await ReadToken(reader);
             if (token != null)
             {
-                // TODO Should be in the Package Service
-                User? user = await _loginService.GetUser(token);
-                if (user == null)
-                {
-                    await SendResponse(writer,"400 Bad Request","There is no valid User");
-                    return;
-                }
-                if(await _packageService.PurchasePackage(user))
+                bool? packagePurchased = await _packageService.PurchasePackage(token);
+                if(packagePurchased == null)
+                    await SendResponse(writer,"400 Bad Request","Invalid user.");
+                else if(packagePurchased == true)
                     await SendResponse(writer, "200 OK", "Package purchased successfully.");
                 else
                     await SendResponse(writer,"400 Bad Request","Package not purchased.");
@@ -227,7 +222,7 @@ public class HandleRequest
                     Console.WriteLine(battleLog);
                 }
                 else
-                    await SendResponse(writer,"400 Bad Request","Battle cannot be started.");
+                    await SendResponse(writer,"400 Bad Request","Invalid user.");
             }
             else
             {

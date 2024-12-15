@@ -1,0 +1,41 @@
+@startuml
+
+actor User
+
+participant "BattleService" as BS
+participant "Database" as DB
+participant "Deck" as Deck
+participant "Card" as Card
+participant "StreamWriter" as SW
+
+User -> BS: Matchmaking(token)
+BS -> DB: GetUser(token)
+DB --> BS: User?
+alt User found
+    BS -> Queue: Enqueue(User, CompletionSource)
+    alt Queue has 2 users
+        BS -> BS: StartBattle(player1, player2)
+        activate BS
+        BS -> Deck: GetCard() // for player1
+        Deck --> BS: Card
+        BS -> Deck: GetCard() //for player2
+        Deck --> BS: Card
+        BS -> Card: Attack(card1, card2)
+        BS -> SW: Log attack details
+        BS -> Deck: Update decks (add/remove cards)
+        Deck --> BS: Updated status
+        alt GameOver()
+            BS -> BS: CheckBattleStatusAndUpdatePlayer()
+            BS -> DB: UpdateElo(player1, player2)
+        end
+        BS -> SW: Log final result
+        BS --> User: Battle log
+        deactivate BS
+    else Waiting for opponent
+        BS --> User: Awaiting opponent
+    end
+else User not found
+    BS --> User: null
+end
+
+@enduml

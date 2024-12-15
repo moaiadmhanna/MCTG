@@ -9,9 +9,13 @@ public class PackageService
     private const int PackageSize = 5;
     private CardRepo _cardRepo = new CardRepo();
     private UserRepo _userRepo = new UserRepo();
+    private TokenRepo _tokenRepo = new TokenRepo();
 
-    public async Task<bool> PurchasePackage(User user)
+    public async Task<bool?> PurchasePackage(string token)
     {
+        User? user = await GetUser(token);
+        if (user == null)
+            return null;
         try
         {
             string username = user.UserName;
@@ -49,5 +53,12 @@ public class PackageService
         }
 
         return false;
+    }
+    private async Task<User?> GetUser(string token)
+    {
+        Guid? userId = await _tokenRepo.GerUserUid(token);
+        if (userId == null)
+            return null;
+        return await _userRepo.GetUser(userId);
     }
 }
