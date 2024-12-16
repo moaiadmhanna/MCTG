@@ -5,44 +5,13 @@ namespace MCTG.Data.Repositories;
 public class CardRepo : BaseRepo
 {
     private UserRepo _userRepo = new UserRepo();
-    public async Task<Card?> GetRandomCard()
-    {
-        const string searchQuery = "SELECT * FROM cards";
-        long numberOfCards = await GetNumberOfCards();
-        if (numberOfCards == 0)
-            return null;
-
-        Random random = new Random();
-        int randomCardNumber = random.Next(1, (int)numberOfCards + 1);
-
-        Card? selectedCard = null;
-        int cnt = 1;
-        await ExecuteReaderAsync(searchQuery, async reader =>
-        {
-            if (cnt == randomCardNumber)
-            {
-                selectedCard = CardFromReader(reader);
-                var id = reader.GetGuid(reader.GetOrdinal("id"));
-                int quantity = reader.GetInt32(reader.GetOrdinal("quantity"));
-                if (quantity - 1 >= 0)
-                    await UpdateCardQuantity(id);
-            }
-            cnt++;
-        });
-        return selectedCard;
-    }
-
-    private async Task UpdateCardQuantity(Guid id)
-    {
-        const string updateQuery = "UPDATE cards SET quantity = quantity - 1 WHERE id = @id";
-        await ExecuteNonQueryAsync(updateQuery, new Dictionary<string, object> { { "@id", id } });
-    }
+    private Random _random = new Random();
     public async Task<long> GetNumberOfCards()
     {
         const string searchQuery = "SELECT COUNT(*) FROM cards WHERE quantity > 0";
         return await ExecuteScalarAsync<long>(searchQuery);
     }
-
+    
     public async Task UpdateUserStackOrDeck(string username, string cardName, string type)
     {
         Guid? cardId = await GetCardId(cardName);
@@ -58,22 +27,52 @@ public class CardRepo : BaseRepo
             await ExecuteNonQueryAsync(insertQuery, new Dictionary<string, object> { {"user_id",userId},{ "@card_id", cardId }, {"quantity", 1}});
     }
 
-    public async Task<bool> AddCardToPackages(Guid packageId, Guid cardId)
+    public async Task AddCardToPackages(Guid packageId, Guid cardId)
     {
-        bool cardExists = await CardExists(cardId);
-        if(!cardExists) return false;
         string insertQuery = $"INSERT INTO packages(package_id, card_id) VALUES(@packageId, @cardId)";
         await ExecuteNonQueryAsync(insertQuery,new Dictionary<string, object>{{"packageId",packageId},{"cardId",cardId}});
         // Update the Quantity of the card in cards table
         await UpdateCardQuantity(cardId);
-        return true;
     }
-
-    private async Task<bool> CardExists(Guid cardId)
+    public async Task<List<Card>?> GetAllCardsFromPackage()
     {
-        string searchQuery = $"SELECT COUNT(1) FROM cards WHERE id = @id";
+        Guid? packageId = await GetRandomPackage();
+        if (packageId == null)
+            return null;
+        string searchQuery = "SELECT c.name, c.type, c.element_type, c.damage, c.monster_type FROM packages AS pk JOIN cards AS c ON pk.card_id = c.id WHERE package_id = @packageId";
+        // List of cards to save cards to it
+        List<Card> cards = new List<Card>();
+        await ExecuteReaderAsync(searchQuery, async reader =>
+        {
+            cards.Add(CardFromReader(reader));
+            
+        },new Dictionary<string, object> { { "@packageId", packageId }});
+        await DeletePackage(packageId);
+        return cards;
+    }
+    public async Task<bool> CardExists(Guid cardId)
+    {
+        string searchQuery = $"SELECT COUNT(1) FROM cards WHERE id = @id AND quantity > 0";
         long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "id", cardId } });
         return count > 0;
+    }
+    private async Task UpdateCardQuantity(Guid id)
+    {
+        const string updateQuery = "UPDATE cards SET quantity = quantity - 1 WHERE id = @id";
+        await ExecuteNonQueryAsync(updateQuery, new Dictionary<string, object> { { "@id", id } });
+    }
+
+    private async Task<Guid?> GetRandomPackage()
+    {
+        string searchQuery = $"SELECT package_id FROM packages ORDER BY RANDOM() LIMIT 1";
+        Guid? packageId = await ExecuteScalarAsync<Guid>(searchQuery);
+        return packageId;
+    }
+
+    private async Task DeletePackage(Guid? packageID)
+    {
+        string deleteQuery = $"DELETE FROM packages WHERE package_id = @packageId";
+        await ExecuteNonQueryAsync(deleteQuery, new Dictionary<string, object> {{ "@packageId", packageID }});
     }
     private async Task<Guid?> GetCardId(string cardName)
     {

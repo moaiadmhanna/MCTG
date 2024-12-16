@@ -64,20 +64,20 @@ Authorization: Bearer 87MN8WYYvKICVYMSVvGl4Z0yu5uEOGUtdZv/LPf6q5E=
 Content-Type: application/json
 
 [
-  "d0745641-dc12-4109-9d80-b2b818c4e274",
-  "451e3d88-b989-440a-aca5-b3da73abab9b",
-  "f61fac88-1ae6-4b57-9f54-136d3d9e3f3b",
-  "5d0fbd63-42ad-4751-8818-493ab07672dc",
-  "5d0fbd63-42ad-4751-8818-493ab07672dc"
+  "be453d72-cf27-4321-8b3f-58d29ab53da7",
+  "be453d72-cf27-4321-8b3f-58d29ab53da7",
+  "92649e8c-e3c0-43b8-a462-d49628eafe4c",
+  "92649e8c-e3c0-43b8-a462-d49628eafe4c",
+  "e2616927-0908-4dbc-af32-74ba0cd1449a"
 ]
 
 ### Parchrase Pakage for the user "kienboec"
 POST http://localhost:10001/transactions/package
-Authorization: Bearer 87MN8WYYvKICVYMSVvGl4Z0yu5uEOGUtdZv/LPf6q5E=
+Authorization: Bearer SRFRgZ5i+fPLNRvoGJt9ulYvDgeLH0mRr6X88SUupR4=
 
 ### Parchrase Pakage for the user "altenhof"
 POST http://localhost:10001/transactions/package
-Authorization: Bearer gHWw6/CqDOwIQuhnCUtev0D/x9kp9qgb5xuNKk/ShQc=
+Authorization: Bearer E/mbSMPESqu+Fjk6yCF4q0VFt36bcthtUkhX/a/dDNg=
 
 ### Begin the Battle Matchmaking "kienboec"
 POST http://localhost:10001/battles

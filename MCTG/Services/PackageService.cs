@@ -11,7 +11,7 @@ public class PackageService
     private UserRepo _userRepo = new UserRepo();
     private TokenRepo _tokenRepo = new TokenRepo();
 
-    public async Task<bool?> PurchasePackage(string token)
+    public async Task<bool?> AcquirePackage(string token)
     {
         User? user = await GetUser(token);
         if (user == null)
@@ -21,9 +21,12 @@ public class PackageService
             string username = user.UserName;
             if (user.Coins >= PackageCost)
             {
+                List<Card>? packageCards = await _cardRepo.GetAllCardsFromPackage();
+                if (packageCards == null)
+                    return false;
                 for (int cardCount = 0; cardCount < PackageSize; cardCount++)
                 {
-                    Card newCard = await _cardRepo.GetRandomCard();
+                    Card newCard = packageCards[cardCount];
                     user.UserStack.AddCardToStack(newCard);
                     await _cardRepo.UpdateUserStackOrDeck(username, newCard.Name, "userstack");
                 }
@@ -42,10 +45,8 @@ public class PackageService
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            return false;
         }
-
-        return false;
     }
 
     public async Task<bool> CreatePackage(List<Guid> cardIds)
@@ -58,17 +59,22 @@ public class PackageService
                 Console.WriteLine("There is not enough cards to buy");
                 return false;
             }
+            // To Check if the Card exists in the DB
             foreach (Guid cardId in cardIds)
             {
-                if (!await _cardRepo.AddCardToPackages(packageId, cardId))
+                if (!await _cardRepo.CardExists(cardId))
                     return false;
+            }
+            // TO Add the Cards to the Package table
+            foreach (Guid cardId in cardIds)
+            {
+                await _cardRepo.AddCardToPackages(packageId, cardId);
             }
 
             return true;
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
             return false;
         }
     }

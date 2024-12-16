@@ -37,7 +37,7 @@ public class HandleRequest
                 {
                     await HandleCreatePackage(reader,writer);
                 }
-                else if (path == "transactions/package")
+                else if (path == "/transactions/package")
                 {
                     await HandleAcquirePackage(reader,writer);
                 }
@@ -219,13 +219,13 @@ public class HandleRequest
             string? token = await ReadToken(reader);
             if (token != null)
             {
-                bool? packagePurchased = await _packageService.PurchasePackage(token);
+                bool? packagePurchased = await _packageService.AcquirePackage(token);
                 if(packagePurchased == null)
                     await SendResponse(writer,"400 Bad Request","Invalid user.");
                 else if(packagePurchased == true)
-                    await SendResponse(writer, "200 OK", "Package purchased successfully.");
+                    await SendResponse(writer, "200 OK", "Package acquired successfully.");
                 else
-                    await SendResponse(writer,"400 Bad Request","Package not purchased.");
+                    await SendResponse(writer,"400 Bad Request","Package not acquired.");
             }
             else
             {
