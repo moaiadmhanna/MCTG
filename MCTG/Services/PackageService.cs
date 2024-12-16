@@ -21,20 +21,13 @@ public class PackageService
             string username = user.UserName;
             if (user.Coins >= PackageCost)
             {
-                if (await _cardRepo.GetNumberOfCards() < 5)
-                {
-                    Console.WriteLine("There is not enough cards to buy");
-                    return false;
-                }
-
-                Console.WriteLine($"Purchased package for user {username}");
                 for (int cardCount = 0; cardCount < PackageSize; cardCount++)
                 {
                     Card newCard = await _cardRepo.GetRandomCard();
                     user.UserStack.AddCardToStack(newCard);
                     await _cardRepo.UpdateUserStackOrDeck(username, newCard.Name, "userstack");
                 }
-
+                Console.WriteLine($"Purchased package for user {username}");
                 user.UpdateCoins(-PackageCost);
                 await _userRepo.UpdateCoins(PackageCost, username);
                 Console.WriteLine($"The Stack of {username} has been updated");
@@ -53,6 +46,31 @@ public class PackageService
         }
 
         return false;
+    }
+
+    public async Task<bool> CreatePackage(List<Guid> cardIds)
+    {
+        try
+        {
+            Guid packageId = Guid.NewGuid();
+            if (await _cardRepo.GetNumberOfCards() < 5)
+            {
+                Console.WriteLine("There is not enough cards to buy");
+                return false;
+            }
+            foreach (Guid cardId in cardIds)
+            {
+                if (!await _cardRepo.AddCardToPackages(packageId, cardId))
+                    return false;
+            }
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return false;
+        }
     }
     private async Task<User?> GetUser(string token)
     {

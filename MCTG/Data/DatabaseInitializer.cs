@@ -99,6 +99,14 @@ public class DatabaseInitializer
                 )
                 ";
                 command.ExecuteNonQuery();
+                // Create the Package Table
+                command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS packages(
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    package_id UUID NOT NULL,
+                    card_id UUID REFERENCES Cards(id)
+                )";
+                command.ExecuteNonQuery();
             }
         }
         InitializeCards();

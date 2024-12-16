@@ -37,11 +37,6 @@ public class CardRepo : BaseRepo
         const string updateQuery = "UPDATE cards SET quantity = quantity - 1 WHERE id = @id";
         await ExecuteNonQueryAsync(updateQuery, new Dictionary<string, object> { { "@id", id } });
     }
-    private async Task DeleteCard(Guid id)
-    {
-        const string deleteQuery = "DELETE FROM cards WHERE id=@id";
-        await ExecuteNonQueryAsync(deleteQuery, new Dictionary<string, object> { { "@id", id } });
-    }
     public async Task<long> GetNumberOfCards()
     {
         const string searchQuery = "SELECT COUNT(*) FROM cards WHERE quantity > 0";
@@ -63,6 +58,23 @@ public class CardRepo : BaseRepo
             await ExecuteNonQueryAsync(insertQuery, new Dictionary<string, object> { {"user_id",userId},{ "@card_id", cardId }, {"quantity", 1}});
     }
 
+    public async Task<bool> AddCardToPackages(Guid packageId, Guid cardId)
+    {
+        bool cardExists = await CardExists(cardId);
+        if(!cardExists) return false;
+        string insertQuery = $"INSERT INTO packages(package_id, card_id) VALUES(@packageId, @cardId)";
+        await ExecuteNonQueryAsync(insertQuery,new Dictionary<string, object>{{"packageId",packageId},{"cardId",cardId}});
+        // Update the Quantity of the card in cards table
+        await UpdateCardQuantity(cardId);
+        return true;
+    }
+
+    private async Task<bool> CardExists(Guid cardId)
+    {
+        string searchQuery = $"SELECT COUNT(1) FROM cards WHERE id = @id";
+        long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "id", cardId } });
+        return count > 0;
+    }
     private async Task<Guid?> GetCardId(string cardName)
     {
         const string searchQuery = "SELECT id FROM cards WHERE name = @name";

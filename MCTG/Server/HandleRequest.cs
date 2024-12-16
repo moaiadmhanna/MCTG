@@ -33,9 +33,13 @@ public class HandleRequest
                 {
                     await HandleRegister(reader,writer);
                 }
-                else if (path == "/package")
+                else if (path == "/packages")
                 {
-                    await HandlePackage(reader,writer);
+                    await HandleCreatePackage(reader,writer);
+                }
+                else if (path == "transactions/package")
+                {
+                    await HandleAcquirePackage(reader,writer);
                 }
                 else if (path == "/battles")
                 {
@@ -44,7 +48,7 @@ public class HandleRequest
                 break;
         }
     }
-    
+
 
     public async Task<string> ReadRequestBody(StreamReader reader)
     {
@@ -97,6 +101,7 @@ public class HandleRequest
                     parts = parts[1].Split(' ', 2);
                     if(parts[0].Equals("Bearer", StringComparison.OrdinalIgnoreCase))
                         token = parts[1]; // Get the token
+                    break;
                 }
             }
         }
@@ -180,10 +185,35 @@ public class HandleRequest
             await SendResponse(writer, "400 Bad Request", ex.Message);
         }
     }
-
-    public async Task HandlePackage(StreamReader reader, StreamWriter writer)
+    private async Task HandleCreatePackage(StreamReader reader, StreamWriter writer)
     {
-        Console.WriteLine("Package request...");
+        Console.WriteLine("Package create request...");
+        try
+        {
+            string? adminToken = await ReadToken(reader);
+            if(adminToken == null)
+                await SendResponse(writer,"400 Bad Request", "Invalid admin token.");
+            var packageIds = JsonSerializer.Deserialize<List<Guid>>(await ReadRequestBody(reader));
+            if (packageIds == null)
+            {
+                await SendResponse(writer, "400 Bad Request", "Invalid request body.");
+                return;
+            }
+            if(await _packageService.CreatePackage(packageIds))
+                await SendResponse(writer,"200 OK","Package created successfully.");
+            else
+                await SendResponse(writer, "400 Bad Request", "Package could not be created.");
+            
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            await SendResponse(writer, "400 Bad Request", e.Message);
+        }
+    }
+    public async Task HandleAcquirePackage(StreamReader reader, StreamWriter writer)
+    {
+        Console.WriteLine("Package acquire request...");
         try
         {
             string? token = await ReadToken(reader);
