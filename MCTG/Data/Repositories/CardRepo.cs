@@ -56,6 +56,22 @@ public class CardRepo : BaseRepo
         long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "id", cardId } });
         return count > 0;
     }
+
+    public async Task<List<Card>> GetCardsAllFromStack(Guid? userId)
+    {
+        string searchQuery = @"SELECT c.name, c.type, c.element_type, c.damage, c.monster_type, us.quantity 
+                                FROM userstack AS us JOIN cards AS c ON us.card_id = c.id 
+                                WHERE us.user_id = @userId";
+        // List of cards to save cards to it
+        List<Card> cards = new List<Card>();
+        await ExecuteReaderAsync(searchQuery, async reader =>
+        {
+            int quantity = reader.GetInt32(reader.GetOrdinal("quantity"));
+            for(int i = 0; i < quantity; i++)
+                cards.Add(CardFromReader(reader));
+        },new Dictionary<string, object> { { "@userId", userId }});
+        return cards;
+    }
     private async Task UpdateCardQuantity(Guid id)
     {
         const string updateQuery = "UPDATE cards SET quantity = quantity - 1 WHERE id = @id";

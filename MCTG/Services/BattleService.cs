@@ -27,6 +27,7 @@ enum CardStatus
 }
 public class BattleService
 {
+    //TODO concurent Queue
     // Matchmaking Queue for the Players
     private readonly Queue<(User User, TaskCompletionSource<string> CompletionSource)> _matchMakingQueue = new();
     private const int Rounds = 100;
@@ -72,7 +73,7 @@ public class BattleService
         int currentRound = 0;
         while (currentRound < Rounds && !GameOver(player1Deck,player2Deck))
         {
-            WriteToStream(writer,$"--------Round:{currentRound}--------");
+            WriteToStream(writer,$"--------Round:{currentRound + 1}--------");
             Card player1Card = player1Deck.GetCard(random.Next(player1Deck.Count()));
             Card player2Card = player2Deck.GetCard(random.Next(player2Deck.Count()));
             CardStatus card1Status = Attack(player1Card, player2Card,writer);
