@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Threading.Channels;
 using MCTG.Data;
@@ -27,9 +28,8 @@ enum CardStatus
 }
 public class BattleService
 {
-    //TODO concurent Queue
     // Matchmaking Queue for the Players
-    private readonly Queue<(User User, TaskCompletionSource<string> CompletionSource)> _matchMakingQueue = new();
+    private readonly ConcurrentQueue<(User User, TaskCompletionSource<string> CompletionSource)> _matchMakingQueue = new();
     private const int Rounds = 100;
     private readonly TokenRepo _tokenRepo = new();
     private readonly UserRepo _userRepo = new();
@@ -46,16 +46,14 @@ public class BattleService
             _matchMakingQueue.Enqueue((user, completionSource));
             if (_matchMakingQueue.Count >= 2)
             {
-                var player1 = _matchMakingQueue.Dequeue();
-                var player2 = _matchMakingQueue.Dequeue();
-
-                // Start the battle and generate the log
-                string log = StartBattle(player1.User, player2.User);
-                Console.WriteLine(log);
-
-                // Set the result for both players
-                player1.CompletionSource.SetResult(log);
-                player2.CompletionSource.SetResult(log);
+                if (_matchMakingQueue.TryDequeue(out var player1) && _matchMakingQueue.TryDequeue(out var player2))
+                {
+                    // Start the battle and generate the log
+                    string log = StartBattle(player1.User, player2.User);
+                    // Set the result for both players
+                    player1.CompletionSource.SetResult(log);
+                    player2.CompletionSource.SetResult(log);
+                }
             }
             // Return the Task associated with this player's battle result
         return await completionSource.Task;
