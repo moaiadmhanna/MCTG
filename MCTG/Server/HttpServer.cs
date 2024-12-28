@@ -30,8 +30,8 @@ public class HttpServer
                     using (StreamReader reader = new StreamReader(stream))
                     using (StreamWriter writer = new StreamWriter(stream))
                     {
-                        HandleRequest requestHandler = new HandleRequest();
-                        await requestHandler.ProcessRequest(reader, writer,_battleService); // Process the client's request asynchronously
+                        HandleRequest requestHandler = new HandleRequest(reader, writer,_battleService);
+                        await requestHandler.ProcessRequest(); // Process the client's request asynchronously
                     }
                 }
             });

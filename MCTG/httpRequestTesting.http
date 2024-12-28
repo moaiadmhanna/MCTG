@@ -60,7 +60,7 @@ Content-Type: application/json
 }
 ### Create Packages
 POST http://localhost:10001/packages
-Authorization: Bearer AWxftE3BhTmPRWMzqZnWYx/xSQrnJrOQoS8qQfJxVuY=
+Authorization: Bearer zlyigjNJSOzG1kwlNE/Ca9xAadAfplsEBf4I7oZAfvA=
 Content-Type: application/json
 
 [
@@ -73,22 +73,22 @@ Content-Type: application/json
 
 ### Parchrase Pakage for the user "kienboec"
 POST http://localhost:10001/transactions/package
-Authorization: Bearer W6n3j9nUlU6OMYgk5AOspZXsSBSk9lc9fh9BqclVuno=
+Authorization: Bearer zlyigjNJSOzG1kwlNE/Ca9xAadAfplsEBf4I7oZAfvA=
 
 ### Parchrase Pakage for the user "altenhof"
 POST http://localhost:10001/transactions/package
-Authorization: Bearer 6v+DJ3I3QdascwKefbgfFrNtgBI7Rdjm42Th6np2m48=
+Authorization: Bearer fJONrBnsWVzWP821D8aWkqpT3N17X83YuKKUsnunl94=
 
 ### Begin the Battle Matchmaking "kienboec"
 POST http://localhost:10001/battles
-Authorization: Bearer W6n3j9nUlU6OMYgk5AOspZXsSBSk9lc9fh9BqclVuno=
+Authorization: Bearer zlyigjNJSOzG1kwlNE/Ca9xAadAfplsEBf4I7oZAfvA=
 
 ### Battle "kienboec" with "altenhof"
 POST http://localhost:10001/battles
-Authorization: Bearer 6v+DJ3I3QdascwKefbgfFrNtgBI7Rdjm42Th6np2m48=
+Authorization: Bearer fJONrBnsWVzWP821D8aWkqpT3N17X83YuKKUsnunl94=
 
 ### Show All Cards for the user "Kienboec"
 GET http://localhost:10001/cards
-Authorization: Bearer EPB6U/5/haMYBNmR9XyLl4pkFJTFsvW8wr0ZR0DLilo=
+Authorization: Bearer zlyigjNJSOzG1kwlNE/Ca9xAadAfplsEBf4I7oZAfvA=
 
 

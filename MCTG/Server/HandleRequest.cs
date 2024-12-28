@@ -9,11 +9,21 @@ public class HandleRequest
     private readonly RegisterService _registerService = new RegisterService();
     private readonly PackageService _packageService = new PackageService();
     private readonly UserService _userService = new UserService();
+    private StreamReader _reader;
+    private StreamWriter _writer;
     private BattleService _battleService;
-    public async Task ProcessRequest(StreamReader reader, StreamWriter writer,BattleService battleService)
+    private readonly Dictionary<string, Dictionary<string, Func<Task>>> _handlers = new();
+
+    public HandleRequest(StreamReader reader, StreamWriter writer, BattleService battleService)
     {
+        _reader = reader;
+        _writer = writer;
         _battleService = battleService;
-        string requestLine = await reader.ReadLineAsync();
+        HandlerInitializer();
+    }
+    public async Task ProcessRequest()
+    {
+        string requestLine = await _reader.ReadLineAsync();
         string[] requestParts = requestLine.Split(" ");
         if (requestParts.Length < 3)
         {
@@ -21,45 +31,38 @@ public class HandleRequest
         }
         string method = requestParts[0]; // The HTTP method
         string path = requestParts[1];   // The requested path
-        switch (method)
+        if (_handlers.TryGetValue(method, out var pathHandlers))
         {
-            case "GET":
-                if (path == "/cards")
-                {
-                    await HandleDisplayCards(reader, writer);
-                }
-                break;
-            case "POST":
-                if (path == "/sessions")
-                {
-                    await HandleLogin(reader, writer);
-                }
-                else if (path == "/users")
-                {
-                    await HandleRegister(reader,writer);
-                }
-                else if (path == "/packages")
-                {
-                    await HandleCreatePackage(reader,writer);
-                }
-                else if (path == "/transactions/package")
-                {
-                    await HandleAcquirePackage(reader,writer);
-                }
-                else if (path == "/battles")
-                {
-                    await HandleBattle(reader, writer);
-                }
-                break;
+            if (pathHandlers.TryGetValue(path, out var handler))
+            {
+                await handler();
+            }
         }
     }
+    private void HandlerInitializer()
+    {
+        _handlers["GET"] = new Dictionary<string, Func<Task>>
+        {
+            ["/cards"] = HandleDisplayCardsFromStack,
+            ["/deck"] = HandleDisplayCardsFromDeck,
+        };
+
+        _handlers["POST"] = new Dictionary<string, Func<Task>>
+        {
+            ["/sessions"] = HandleLogin,
+            ["/users"] = HandleRegister,
+            ["/packages"] = HandleCreatePackage,
+            ["/transactions/package"] = HandleAcquirePackage,
+            ["/battles"] = HandleBattle
+        };
+    }
     #region ReadBody
-    public async Task<string> ReadRequestBody(StreamReader reader)
+    private async Task<string> ReadRequestBody()
     {
         string? line;
         StringBuilder body = new StringBuilder();
         int content_length = 0;
-        while (!string.IsNullOrWhiteSpace(line = await reader.ReadLineAsync()))
+        while (!string.IsNullOrWhiteSpace(line = await _reader.ReadLineAsync()))
         {
             if (line == "")
             {
@@ -79,7 +82,7 @@ public class HandleRequest
             while ( bytesReadTotal < content_length)
             {
                 int bytesToRead = content_length - bytesReadTotal;
-                int bytesRead = await reader.ReadAsync(chars, bytesReadTotal, bytesToRead);
+                int bytesRead = await _reader.ReadAsync(chars, bytesReadTotal, bytesToRead);
                 if (bytesRead == 0)
                     break;
                 bytesReadTotal += bytesRead;
@@ -88,12 +91,12 @@ public class HandleRequest
         }
         return body.ToString();
     }
-    public async Task<string?> ReadToken(StreamReader reader)
+    private async Task<string?> ReadToken()
     {
         string? line;
         string? token = null;
 
-        while (!string.IsNullOrWhiteSpace(line = await reader.ReadLineAsync()))
+        while (!string.IsNullOrWhiteSpace(line = await _reader.ReadLineAsync()))
         {
             // Parse the header
             if (line.StartsWith("Authorization:", StringComparison.OrdinalIgnoreCase))
@@ -114,35 +117,35 @@ public class HandleRequest
     #endregion
     
     #region SendResponse
-    private async Task SendResponse(StreamWriter writer, string status, string body)
+    private async Task SendResponse(string status, string body)
     {
-        await writer.WriteLineAsync($"HTTP/1.1 {status}");
-        await writer.WriteLineAsync("Content-Type: text/plain");
-        await writer.WriteLineAsync($"Content-Length: {body.Length}");
-        await writer.WriteLineAsync("Connection: keep-alive"); // Ensure keep-alive is set if desired
-        await writer.WriteLineAsync();
-        await writer.WriteLineAsync(body);
-        await writer.FlushAsync();
+        await _writer.WriteLineAsync($"HTTP/1.1 {status}");
+        await _writer.WriteLineAsync("Content-Type: text/plain");
+        await _writer.WriteLineAsync($"Content-Length: {body.Length}");
+        await _writer.WriteLineAsync("Connection: keep-alive"); // Ensure keep-alive is set if desired
+        await _writer.WriteLineAsync();
+        await _writer.WriteLineAsync(body);
+        await _writer.FlushAsync();
     }
-    private async Task SendResponseWithJson(StreamWriter writer, string status, string jsonBody)
+    private async Task SendResponseWithJson(string status, string jsonBody)
     {
-        await writer.WriteLineAsync($"HTTP/1.1 {status}");
-        await writer.WriteLineAsync("Content-Type: application/json"); // Set content type to JSON
-        await writer.WriteLineAsync($"Content-Length: {jsonBody.Length}");
-        await writer.WriteLineAsync("Connection: keep-alive");
-        await writer.WriteLineAsync();
-        await writer.WriteLineAsync(jsonBody); // Write the JSON body
-        await writer.FlushAsync();
+        await _writer.WriteLineAsync($"HTTP/1.1 {status}");
+        await _writer.WriteLineAsync("Content-Type: application/json"); // Set content type to JSON
+        await _writer.WriteLineAsync($"Content-Length: {jsonBody.Length}");
+        await _writer.WriteLineAsync("Connection: keep-alive");
+        await _writer.WriteLineAsync();
+        await _writer.WriteLineAsync(jsonBody); // Write the JSON body
+        await _writer.FlushAsync();
     }
     #endregion
 
     #region POST
-    private async Task HandleRegister(StreamReader reader, StreamWriter writer)
+    private async Task HandleRegister()
     {
         Console.WriteLine("Register request...");
         try
         {
-            string requestBody = await ReadRequestBody(reader);
+            string requestBody = await ReadRequestBody();
             var registerRequest = JsonSerializer.Deserialize<Dictionary<string, object>>(requestBody);
             if (registerRequest != null)
             {
@@ -150,154 +153,153 @@ public class HandleRequest
                 if (!registerRequest.TryGetValue("Username", out var usernameValue) || 
                     !registerRequest.TryGetValue("Password", out var passwordValue))
                 {
-                    await SendResponse(writer, "400 Bad Request", "Username and Password are required.");
+                    await SendResponse("400 Bad Request", "Username and Password are required.");
                     return;
                 }
                 string username = usernameValue.ToString();
                 string password = passwordValue.ToString();
                 if(await _registerService.RegisterUser(username, password))
-                    await SendResponse(writer, "200 OK", "User registered successfully.");
+                    await SendResponse("200 OK", "User registered successfully.");
                 else
-                    await SendResponse(writer, "400 Bad Request", "User not registered.");
+                    await SendResponse("400 Bad Request", "User not registered.");
             }
             else
             {
-                await SendResponse(writer, "400 Bad Request", "Invalid JSON format.");
+                await SendResponse("400 Bad Request", "Invalid JSON format.");
             }
         }
         catch (JsonException ex)
         {
-            await SendResponse(writer, "400 Bad Request", ex.Message);
+            await SendResponse("400 Bad Request", ex.Message);
         }
     }
 
-    private async Task HandleLogin(StreamReader reader, StreamWriter writer)
+    private async Task HandleLogin()
     {
         Console.WriteLine("Login request...");
         try
         {
-            string requestBody = await ReadRequestBody(reader);
+            string requestBody = await ReadRequestBody();
             var loginRequest = JsonSerializer.Deserialize<Dictionary<string,object>>(requestBody);
             if (loginRequest != null)
             {
                 if (!loginRequest.TryGetValue("Username", out var usernameValue) || 
                     !loginRequest.TryGetValue("Password", out var passwordValue))
                 {
-                    await SendResponse(writer, "400 Bad Request", "Username and Password are required.");
+                    await SendResponse("400 Bad Request", "Username and Password are required.");
                     return;
                 }
                 string username = usernameValue.ToString();
                 string password = passwordValue.ToString();
                 string? token = await _loginService.LoginUser(username, password);
                 if(token != null)
-                    await SendResponse(writer, "200 OK", $"Login successful. token generated: {token}");
+                    await SendResponse("200 OK", $"Login successful. token generated: {token}");
                 else 
-                    await SendResponse(writer,"400 Bad Request", "Invalid username or password.");
+                    await SendResponse("400 Bad Request", "Invalid username or password.");
             }
             else
             {
-                await SendResponse(writer, "400 Bad Request", "Invalid JSON format.");
+                await SendResponse("400 Bad Request", "Invalid JSON format.");
             }
         }
         catch (JsonException ex)
         {
-            await SendResponse(writer, "400 Bad Request", ex.Message);
+            await SendResponse("400 Bad Request", ex.Message);
         }
     }
-    private async Task HandleCreatePackage(StreamReader reader, StreamWriter writer)
+    private async Task HandleCreatePackage()
     {
         Console.WriteLine("Package create request...");
         try
         {
-            string? adminToken = await ReadToken(reader);
+            string? adminToken = await ReadToken();
             if(adminToken == null)
-                await SendResponse(writer,"400 Bad Request", "Invalid admin token.");
-            var packageIds = JsonSerializer.Deserialize<List<Guid>>(await ReadRequestBody(reader));
+                await SendResponse("400 Bad Request", "Invalid admin token.");
+            var packageIds = JsonSerializer.Deserialize<List<Guid>>(await ReadRequestBody());
             if (packageIds == null)
             {
-                await SendResponse(writer, "400 Bad Request", "Invalid request body.");
+                await SendResponse("400 Bad Request", "Invalid request body.");
                 return;
             }
             if(await _packageService.CreatePackage(packageIds))
-                await SendResponse(writer,"200 OK","Package created successfully.");
+                await SendResponse("200 OK","Package created successfully.");
             else
-                await SendResponse(writer, "400 Bad Request", "Package could not be created.");
+                await SendResponse("400 Bad Request", "Package could not be created.");
             
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
-            await SendResponse(writer, "400 Bad Request", e.Message);
+            await SendResponse("400 Bad Request", e.Message);
         }
     }
-    private async Task HandleAcquirePackage(StreamReader reader, StreamWriter writer)
+    private async Task HandleAcquirePackage()
     {
         Console.WriteLine("Package acquire request...");
         try
         {
-            string? token = await ReadToken(reader);
+            string? token = await ReadToken();
             if (token != null)
             {
                 bool? packagePurchased = await _packageService.AcquirePackage(token);
                 if(packagePurchased == null)
-                    await SendResponse(writer,"400 Bad Request","Invalid user.");
+                    await SendResponse("400 Bad Request","Invalid user.");
                 else if(packagePurchased == true)
-                    await SendResponse(writer, "200 OK", "Package acquired successfully.");
+                    await SendResponse("200 OK", "Package acquired successfully.");
                 else
-                    await SendResponse(writer,"400 Bad Request","Not enough Money.");
+                    await SendResponse("400 Bad Request","Not enough Money.");
             }
             else
             {
-                await SendResponse(writer, "400 Bad Request", "Unauthorized.");
+                await SendResponse("400 Bad Request", "Unauthorized.");
             }
         }
         catch (JsonException ex)
         {
-            await SendResponse(writer, "400 Bad Request", ex.Message);
+            await SendResponse("400 Bad Request", ex.Message);
         }
     }
-    private async Task HandleBattle(StreamReader reader, StreamWriter writer)
+    private async Task HandleBattle()
     {
         Console.WriteLine("Battle request...");
         try
         {
-            string? token = await ReadToken(reader);
+            string? token = await ReadToken();
             if (token != null)
             {
                 string? battleLog = await _battleService.Matchmaking(token);
                 if (battleLog != null)
                 {
-                    await SendResponse(writer, "200 OK", battleLog);
-                    Console.WriteLine(battleLog);
+                    await SendResponse("200 OK", battleLog);
                 }
                 else
-                    await SendResponse(writer,"400 Bad Request","Invalid user.");
+                    await SendResponse("400 Bad Request","Invalid user.");
             }
             else
             {
-                await SendResponse(writer, "400 Bad Request", "Unauthorized.");
+                await SendResponse("400 Bad Request", "Unauthorized.");
             }
         }
         catch (JsonException ex)
         {
-            await SendResponse(writer, "400 Bad Request", ex.Message);
+            await SendResponse("400 Bad Request", ex.Message);
         }
     }
     #endregion
 
     #region GET
 
-    private async Task HandleDisplayCards(StreamReader reader, StreamWriter writer)
+    private async Task HandleDisplayCardsFromStack()
     {
         Console.WriteLine("Cards display request...");
         try
         {
-            string? token = await ReadToken(reader);
+            string? token = await ReadToken();
             if (token != null)
             {
                 List<Card>? cards = await _userService.ShowCards(token);
                 if(cards == null)
-                    await SendResponse(writer,"400 Bad Request","Invalid user.");
+                    await SendResponse("400 Bad Request","Invalid user.");
                 else
                 {
                     // Serialize the cards list to JSON
@@ -307,18 +309,23 @@ public class HandleRequest
                     });
 
                     // Send JSON response
-                    await SendResponseWithJson(writer, "200 OK", json);
+                    await SendResponseWithJson("200 OK", json);
                 }
             }
             else
             {
-                await SendResponse(writer, "400 Bad Request", "Unauthorized.");
+                await SendResponse("400 Bad Request", "Unauthorized.");
             }
         }
         catch (JsonException ex)
         {
-            await SendResponse(writer, "400 Bad Request", ex.Message);
+            await SendResponse("400 Bad Request", ex.Message);
         }
+    }
+
+    private async Task HandleDisplayCardsFromDeck()
+    {
+        
     }
     #endregion
 }
