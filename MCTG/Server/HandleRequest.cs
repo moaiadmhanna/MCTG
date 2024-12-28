@@ -297,7 +297,7 @@ public class HandleRequest
             string? token = await ReadToken();
             if (token != null)
             {
-                List<Card>? cards = await _userService.ShowCards(token);
+                List<Card>? cards = await _userService.ShowCards(token,"Stack");
                 if(cards == null)
                     await SendResponse("400 Bad Request","Invalid user.");
                 else
@@ -325,7 +325,36 @@ public class HandleRequest
 
     private async Task HandleDisplayCardsFromDeck()
     {
-        
+        Console.WriteLine("Deck display request...");
+        try
+        {
+            string? token = await ReadToken();
+            if (token != null)
+            {
+                List<Card>? cards = await _userService.ShowCards(token,"Deck");
+                if(cards == null)
+                    await SendResponseWithJson("400 Bad Request",null);
+                else
+                {
+                    // Serialize the cards list to JSON
+                    string json = JsonSerializer.Serialize(cards, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+
+                    // Send JSON response
+                    await SendResponseWithJson("200 OK", json);
+                }
+            }
+            else
+            {
+                await SendResponse("400 Bad Request", "Unauthorized.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            await SendResponse("400 Bad Request", ex.Message);
+        }
     }
     #endregion
 }

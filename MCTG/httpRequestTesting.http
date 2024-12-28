@@ -87,8 +87,18 @@ Authorization: Bearer zlyigjNJSOzG1kwlNE/Ca9xAadAfplsEBf4I7oZAfvA=
 POST http://localhost:10001/battles
 Authorization: Bearer fJONrBnsWVzWP821D8aWkqpT3N17X83YuKKUsnunl94=
 
-### Show All Cards for the user "Kienboec"
+### Display All Cards for the user "Kienboec"
 GET http://localhost:10001/cards
 Authorization: Bearer zlyigjNJSOzG1kwlNE/Ca9xAadAfplsEBf4I7oZAfvA=
+
+### Display Deck for the user "Kienboec"
+GET http://localhost:10001/deck
+Authorization: Bearer zlyigjNJSOzG1kwlNE/Ca9xAadAfplsEBf4I7oZAfvA=
+
+### Display Deck for the user "altenhof"
+GET http://localhost:10001/deck
+Authorization: Bearer fJONrBnsWVzWP821D8aWkqpT3N17X83YuKKUsnunl94=
+
+
 
 

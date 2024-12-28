@@ -57,10 +57,27 @@ public class CardRepo : BaseRepo
         return count > 0;
     }
 
-    public async Task<List<Card>> GetCardsAllFromStack(Guid? userId)
+    public async Task<List<Card>> GetAllCardsFromStack(Guid? userId)
     {
         string searchQuery = @"SELECT c.name, c.type, c.element_type, c.damage, c.monster_type, us.quantity 
                                 FROM userstack AS us JOIN cards AS c ON us.card_id = c.id 
+                                WHERE us.user_id = @userId";
+        // List of cards to save cards to it
+        List<Card> cards = new List<Card>();
+        await ExecuteReaderAsync(searchQuery, async reader =>
+        {
+            int quantity = reader.GetInt32(reader.GetOrdinal("quantity"));
+            for(int i = 0; i < quantity; i++)
+                cards.Add(CardFromReader(reader));
+        },new Dictionary<string, object> { { "@userId", userId }});
+        return cards;
+    }
+
+    public async Task<List<Card>> GetAllCardsFromDeck(Guid? userId)
+    {
+        string searchQuery = @"SELECT c.name, c.type, c.element_type, c.damage, c.monster_type, ud.quantity 
+                                FROM userdeck AS ud JOIN userstack AS us ON ud.user_stack_id = us.id
+                                JOIN cards AS c ON us.card_id = c.id 
                                 WHERE us.user_id = @userId";
         // List of cards to save cards to it
         List<Card> cards = new List<Card>();

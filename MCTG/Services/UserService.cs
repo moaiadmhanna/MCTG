@@ -7,11 +7,13 @@ public class UserService
     private readonly TokenRepo _tokenRepo = new TokenRepo();
     private readonly CardRepo _cardRepo = new CardRepo();
     
-    public async Task<List<Card>?> ShowCards(string token)
+    public async Task<List<Card>?> ShowCards(string token, string source)
     {
         Guid? userId = await _tokenRepo.GerUserUid(token);
         if (userId == null)
             return null;
-        return await _cardRepo.GetCardsAllFromStack(userId);
+        if (source == "Stack")
+            return await _cardRepo.GetAllCardsFromStack(userId);
+        return await _cardRepo.GetAllCardsFromDeck(userId);
     }
 }
