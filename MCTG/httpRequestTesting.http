@@ -1,3 +1,12 @@
+### Should succeed - Create user "admin"
+POST http://localhost:10001/users
+Content-Type: application/json
+
+{
+  "Username": "admin",
+  "Password": "admin12345"
+}
+###
 ### Should succeed - Create user "kienboec"
 POST http://localhost:10001/users
 Content-Type: application/json
@@ -27,8 +36,6 @@ Content-Type: application/json
   "Username": "kienboec",
   "Password": "daniel"
 }
-
-
 ###
 
 ### Should fail - User already exists with a different password
@@ -40,7 +47,15 @@ Content-Type: application/json
   "Password": "different"
 }
 ### 2) Login Users
+### Login admin
+POST http://localhost:10001/sessions
+Content-Type: application/json
 
+{
+  "Username": "admin",
+  "Password": "admin12345"
+}
+###
 ### Login user "kienboec"
 POST http://localhost:10001/sessions
 Content-Type: application/json
@@ -60,7 +75,7 @@ Content-Type: application/json
 }
 ### Create Packages
 POST http://localhost:10001/packages
-Authorization: Bearer zlyigjNJSOzG1kwlNE/Ca9xAadAfplsEBf4I7oZAfvA=
+Authorization: Bearer XxImjATrx/4XAB4sZuXeDCKtUB0Uglye1yYF/KifzBs=
 Content-Type: application/json
 
 [
@@ -70,7 +85,7 @@ Content-Type: application/json
   "fc31d1f3-f90d-48c0-af48-f08aa8d3b3c6",
   "38130aa8-b00e-430f-90ca-00e5c5e26066"
 ]
-
+###
 ### Parchrase Pakage for the user "kienboec"
 POST http://localhost:10001/transactions/package
 Authorization: Bearer zlyigjNJSOzG1kwlNE/Ca9xAadAfplsEBf4I7oZAfvA=

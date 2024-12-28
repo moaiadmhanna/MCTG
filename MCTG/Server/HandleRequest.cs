@@ -213,7 +213,7 @@ public class HandleRequest
         try
         {
             string? adminToken = await ReadToken();
-            if(adminToken == null)
+            if(adminToken == null || adminToken != "XxImjATrx/4XAB4sZuXeDCKtUB0Uglye1yYF/KifzBs=")
                 await SendResponse("400 Bad Request", "Invalid admin token.");
             var packageIds = JsonSerializer.Deserialize<List<Guid>>(await ReadRequestBody());
             if (packageIds == null)
