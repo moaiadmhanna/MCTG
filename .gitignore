@@ -17,3 +17,5 @@
 # Ignore Rider/JetBrains settings
 .idea/
 *.sln.iml
+# Ignore http file
+*.http

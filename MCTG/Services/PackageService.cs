@@ -28,7 +28,7 @@ public class PackageService
                 {
                     Card newCard = packageCards[cardCount];
                     user.UserStack.AddCardToStack(newCard);
-                    await _cardRepo.UpdateUserStackOrDeck(username, newCard.Name, "userstack");
+                    await _cardRepo.UpdateUserStack(username, newCard.Name);
                 }
                 Console.WriteLine($"Purchased package for user {username}");
                 user.UpdateCoins(-PackageCost);

@@ -12,15 +12,15 @@ public class CardRepo : BaseRepo
         return await ExecuteScalarAsync<long>(searchQuery);
     }
     
-    public async Task UpdateUserStackOrDeck(string username, string cardName, string type)
+    public async Task UpdateUserStack(string username, string cardName)
     {
         Guid? cardId = await GetCardId(cardName);
         bool cardExist = await CardExistsInUserStack(cardId);
-        string updateQuery = $"UPDATE {type} SET quantity = quantity + 1 WHERE card_id = @card_id";
+        string updateQuery = $"UPDATE userstack SET quantity = quantity + 1 WHERE card_id = @card_id";
         Guid? userId = await _userRepo.GetUserId(username);
         if(userId == null)
             return;
-        string insertQuery = $"INSERT INTO {type}(user_id,card_id,quantity) VALUES(@user_id,@card_id,@quantity)";
+        string insertQuery = $"INSERT INTO userstack (user_id,card_id,quantity) VALUES(@user_id,@card_id,@quantity)";
         if (cardExist)
             await ExecuteNonQueryAsync(updateQuery, new Dictionary<string, object> { { "@card_id", cardId } });
         else
@@ -89,6 +89,72 @@ public class CardRepo : BaseRepo
         },new Dictionary<string, object> { { "@userId", userId }});
         return cards;
     }
+
+    public async Task<bool> DeckConfigured(Guid? userId)
+    {
+        // Query to check if the total entries in userdeck for the user equals 4
+        string searchQuery = @"
+        SELECT COALESCE(SUM(ud.quantity), 0) AS TotalCards
+        FROM userdeck ud
+        JOIN userstack us ON ud.user_stack_id = us.id
+        WHERE us.user_id = @userId";
+
+        // Execute the query and get the total card count
+        long totalCards = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "userId", userId } });
+        // Check if the total cards is 4
+        return totalCards == 4;
+    }
+
+    public async Task<bool> AddCardToDeck(Guid stackId, Guid? userId)
+    {
+        // Check if the stackId exists with the same userId and if the Card Exist
+        string searchQuery = $"SELECT COUNT(1) FROM userstack WHERE id = @stackId AND user_id = @userId AND quantity > 0";
+        long count = await ExecuteScalarAsync<long>(searchQuery,new Dictionary<string, object> { { "stackId", stackId }, { "userId", userId } });
+        if(count < 1)
+            return false;
+        // Add the entry to the userdeck table
+        string insertQuery = $"INSERT INTO userdeck (user_stack_id, quantity) VALUES(@stackId, @quantity)";
+        string updateQuery = $"UPDATE userdeck SET quantity = quantity + 1 WHERE user_stack_id = @stackId";
+        // Check if the entry exists in the userdeck table
+        bool exists = await ExistInUserDeck(stackId);
+        try
+        {
+            if (!exists)
+                await ExecuteNonQueryAsync(insertQuery,
+                    new Dictionary<string, object> { { "stackId", stackId }, { "quantity", 1 } });
+            else
+                await ExecuteNonQueryAsync(updateQuery, new Dictionary<string, object> { { "stackId", stackId } });
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            return false;
+        }
+    }
+    public async Task<bool> DeleteCardFromDeck(Guid stackId)
+    {
+        string editQuery = @"
+        UPDATE userdeck 
+        SET quantity = quantity - 1 
+        WHERE user_stack_id = @stackId AND quantity > 0;
+
+        DELETE FROM userdeck 
+        WHERE user_stack_id = @stackId AND quantity = 0;
+    ";
+
+        try
+        {
+            await ExecuteNonQueryAsync(editQuery, new Dictionary<string, object> { { "stackId", stackId} });
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting card from deck: {ex.Message}");
+            return false;
+        }
+    }
+
     private async Task UpdateCardQuantity(Guid id)
     {
         const string updateQuery = "UPDATE cards SET quantity = quantity - 1 WHERE id = @id";
@@ -140,5 +206,12 @@ public class CardRepo : BaseRepo
             return new MonsterCard(name, damage, element, monster);
         }
         return new SpellCard(name, damage, element);
+    }
+
+    private async Task<bool> ExistInUserDeck(Guid userStackId)
+    {
+        const string searchQuery = "SELECT COUNT(1) FROM userdeck WHERE user_stack_id = @userStackId";
+        long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "userStackId", userStackId } });
+        return count > 0;
     }
 }

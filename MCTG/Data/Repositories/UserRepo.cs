@@ -127,4 +127,61 @@ public class UserRepo : BaseRepo
         const string updateQuery = "UPDATE users SET elo = elo + @elo WHERE id = @userId";
         await ExecuteNonQueryAsync(updateQuery,new Dictionary<string, object>{{"@elo",elo},{ "@userId", userId }});    
     }
+
+    public async Task<string> GetUserName(Guid? userId)
+    {
+        const string searchQuery = "SELECT username FROM users WHERE id = @userId";
+        string userName = "";
+        await ExecuteReaderAsync(searchQuery, async reader =>
+        {
+            userName = reader.GetString(reader.GetOrdinal("username"));
+        },new Dictionary<string, object> { { "@userId", userId }});
+        return userName;
+    }
+
+    public async Task<List<string>> GetUserData(Guid? userId)
+    {
+        const string searchQuery = "SELECT username,coins,elo,created_at,bio,image FROM users WHERE id = @userId";
+        List<string> userData = new();
+        await ExecuteReaderAsync(searchQuery, async reader =>
+        {
+            userData.Add(reader.GetString(reader.GetOrdinal("username")));
+            int coins = reader.GetInt32(reader.GetOrdinal("coins"));
+            int elo = reader.GetInt32(reader.GetOrdinal("elo"));
+            DateTime timestamp = reader.GetDateTime(reader.GetOrdinal("created_at"));
+            userData.Add(coins.ToString());
+            userData.Add(elo.ToString());
+            userData.Add(timestamp.ToString());
+            userData.Add(reader.GetString((reader.GetOrdinal("bio"))));
+            userData.Add(reader.GetString(reader.GetOrdinal("image")));
+        },new Dictionary<string, object> { { "@userId", userId } });
+        return userData;
+    }
+
+    public async Task<bool> ChangeUserData(Guid? userId, List<string> userData)
+    {
+        const string updateQuery = @"UPDATE users 
+                                    SET username = @userName,
+                                        bio = @bio,
+                                        image = @image
+                                    WHERE id = @userId";
+        var parameters = new Dictionary<string, object>
+        {
+            { "username", userData[0] },  // First value is username
+            { "bio", userData[1] },      // Second value is bio
+            { "image", userData[2] },    // Third value is image
+            { "userId", userId }         // userId is always passed
+        };
+        try
+        {
+            
+            await ExecuteNonQueryAsync(updateQuery,parameters);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return false;
+        }
+    }
 }
