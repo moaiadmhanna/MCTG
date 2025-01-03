@@ -67,4 +67,12 @@ public class UserService
             return null;
         return await _userRepo.ChangeUserData(userId,userData);
     }
+
+    public async Task<List<string>?> ShowUserStats(string token)
+    {
+        Guid? userId = await _tokenRepo.GerUserUid(token);
+        if (userId == null)
+            return null;
+        return await _userRepo.GetUserStats(userId);
+    }
 }

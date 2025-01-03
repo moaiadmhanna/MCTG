@@ -25,8 +25,6 @@ public class HandleRequest
     {
         string requestLine = await _reader.ReadLineAsync();
         string[] requestParts = requestLine.Split(" ");
-        foreach (string requestPart in requestParts)
-            Console.WriteLine(requestPart);
         if (requestParts.Length < 3)
         {
             throw new Exception("Invalid request line");
@@ -60,6 +58,7 @@ public class HandleRequest
         {
             ["/cards"] = HandleDisplayCardsFromStack,
             ["/deck"] = HandleDisplayCardsFromDeck,
+            ["/stats"] = HandleDisplayUserStats,
             
         };
 
@@ -413,6 +412,41 @@ public class HandleRequest
             await SendResponse("400 Bad Request", ex.Message);
         }
     }
+
+    private async Task HandleDisplayUserStats()
+    {
+        Console.WriteLine("User stats display request...");
+        try
+        {
+            string? token = await ReadToken();
+            if (token != null)
+            {
+                List<string>? userStats = await _userService.ShowUserStats(token);
+                if(userStats == null)
+                    await SendResponse("400 Bad Request","Invalid User. ");
+                else
+                {
+                    // Serialize the cards list to JSON
+                    string json = JsonSerializer.Serialize(userStats, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+
+                    // Send JSON response
+                    await SendResponseWithJson("200 OK", json);
+                }
+            }
+            else
+            {
+                await SendResponse("400 Bad Request", "Unauthorized.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine(ex);
+            await SendResponse("400 Bad Request", ex.Message);
+        }
+    }
     #endregion
 
     #region PUT
@@ -473,7 +507,6 @@ public class HandleRequest
                         await SendResponse("400 Bad Request", "Username and Password are required.");
                         return;
                     }
-
                     userData.Add(nameValue);
                     userData.Add(bioValue);
                     userData.Add(imageValue);

@@ -141,19 +141,15 @@ public class UserRepo : BaseRepo
 
     public async Task<List<string>> GetUserData(Guid? userId)
     {
-        const string searchQuery = "SELECT username,coins,elo,created_at,bio,image FROM users WHERE id = @userId";
+        const string searchQuery = "SELECT username,created_at,bio,image FROM users WHERE id = @userId";
         List<string> userData = new();
         await ExecuteReaderAsync(searchQuery, async reader =>
         {
-            userData.Add(reader.GetString(reader.GetOrdinal("username")));
-            int coins = reader.GetInt32(reader.GetOrdinal("coins"));
-            int elo = reader.GetInt32(reader.GetOrdinal("elo"));
+            userData.Add("Username: " + reader.GetString(reader.GetOrdinal("username")));
             DateTime timestamp = reader.GetDateTime(reader.GetOrdinal("created_at"));
-            userData.Add(coins.ToString());
-            userData.Add(elo.ToString());
-            userData.Add(timestamp.ToString());
-            userData.Add(reader.GetString((reader.GetOrdinal("bio"))));
-            userData.Add(reader.GetString(reader.GetOrdinal("image")));
+            userData.Add("Date created: " + timestamp.ToString());
+            userData.Add("Bio: " + reader.GetString((reader.GetOrdinal("bio"))));
+            userData.Add("image: " + reader.GetString(reader.GetOrdinal("image")));
         },new Dictionary<string, object> { { "@userId", userId } });
         return userData;
     }
@@ -183,5 +179,18 @@ public class UserRepo : BaseRepo
             Console.WriteLine(e);
             return false;
         }
+    }
+
+    public async Task<List<string>> GetUserStats(Guid? userId)
+    {
+        const string searchQuery = "SELECT coins,elo FROM users WHERE id = @userId";
+        List<string> userStats = new();
+        await ExecuteReaderAsync(searchQuery, async reader =>
+        {
+            userStats.Add("Coins: " + reader.GetInt32(reader.GetOrdinal("coins")).ToString());
+            userStats.Add("Elo: " + reader.GetInt32(reader.GetOrdinal("elo")).ToString());
+            
+        }, new Dictionary<string, object> { { "@userId", userId } });
+        return userStats;
     }
 }
