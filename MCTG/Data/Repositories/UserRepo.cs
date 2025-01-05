@@ -4,7 +4,21 @@ using Npgsql;
 
 namespace MCTG.Data.Repositories;
 
-public class UserRepo : BaseRepo
+public interface IUserRepo
+{
+    Task<bool> AddUser(User user);
+    Task<bool> UserExists(string username);
+    Task<User?> GetUser(Guid? userId);
+    Task<Guid?> GetUserId(string username);
+    Task UpdateCoins(int coins, string username);
+    Task UpdateElo(int elo, string username);
+    Task<string> GetUserName(Guid? userId);
+    Task<List<string>> GetUserData(Guid? userId);
+    Task<bool> ChangeUserData(Guid? userId, List<string> userData);
+    Task<List<string>> GetUserStats(Guid? userId);
+    Task<List<string>> GetScoreboard();
+}
+public class UserRepo : BaseRepo,IUserRepo
 {
     public async Task<bool> AddUser(User user)
     {
@@ -192,5 +206,17 @@ public class UserRepo : BaseRepo
             
         }, new Dictionary<string, object> { { "@userId", userId } });
         return userStats;
+    }
+
+    public async Task<List<string>> GetScoreboard()
+    {
+        const string searchQuery = "SELECT username, elo FROM users ORDER BY elo DESC";
+        List<string> scoreboard = new();
+        await ExecuteReaderAsync(searchQuery, async reader =>
+        {
+            scoreboard.Add("Username: " + reader.GetString(reader.GetOrdinal("username")) + " Elo: " +
+                           reader.GetInt32(reader.GetOrdinal("elo")));
+        });
+        return scoreboard;
     }
 }

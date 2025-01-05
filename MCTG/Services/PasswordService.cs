@@ -34,7 +34,6 @@ public class PasswordService
         }
         return salt;
     }
-
     public bool ValidatePassword(string storedPassword, string plainPassword, byte[] salt)
     {
         return storedPassword == PasswordHash(plainPassword, salt);

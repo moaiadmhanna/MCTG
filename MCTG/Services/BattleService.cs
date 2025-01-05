@@ -218,7 +218,7 @@ public class BattleService
     }
     private async Task<User?> GetUser(string token)
     {
-        Guid? userId = await _tokenRepo.GerUserUid(token);
+        Guid? userId = await _tokenRepo.GetUserUid(token);
         if (userId == null)
             return null;
         return await _userRepo.GetUser(userId);

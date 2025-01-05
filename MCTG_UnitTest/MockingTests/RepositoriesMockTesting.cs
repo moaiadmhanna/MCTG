@@ -28,14 +28,14 @@ namespace MCTG_UnitTest
             var token = "validToken";
             var expectedUserId = Guid.NewGuid();
 
-            _mockTokenRepo.GerUserUid(token).Returns(expectedUserId);
+            _mockTokenRepo.GetUserUid(token).Returns(expectedUserId);
 
             // Act
-            var result = await _mockTokenRepo.GerUserUid(token);
+            var result = await _mockTokenRepo.GetUserUid(token);
 
             // Assert
             Assert.AreEqual(expectedUserId, result);
-            await _mockTokenRepo.Received(1).GerUserUid(token);
+            await _mockTokenRepo.Received(1).GetUserUid(token);
         }
 
         [Test]
@@ -44,14 +44,14 @@ namespace MCTG_UnitTest
             // Arrange
             var token = "invalidToken";
 
-            _mockTokenRepo.GerUserUid(token).Returns(Guid.Empty);
+            _mockTokenRepo.GetUserUid(token).Returns(Guid.Empty);
 
             // Act
-            var result = await _mockTokenRepo.GerUserUid(token);
+            var result = await _mockTokenRepo.GetUserUid(token);
 
             // Assert
             Assert.AreEqual(Guid.Empty, result);
-            await _mockTokenRepo.Received(1).GerUserUid(token);
+            await _mockTokenRepo.Received(1).GetUserUid(token);
         }
 
         #endregion

@@ -3,6 +3,7 @@ using System.Text.Json;
 using MCTG.Services;
 
 namespace MCTG.Server;
+
 public class HandleRequest
 {
     private readonly LoginService _loginService = new LoginService();
@@ -50,6 +51,19 @@ public class HandleRequest
                         break;
                 }
             }
+            else if (path.StartsWith("/tradings"))
+            {
+                string tradeId = path.Split('/').Last();
+                switch (method)
+                {
+                    case "POST":
+                        await HandleAcceptTrade(tradeId);
+                        break;
+                    case "DELETE":
+                        await HandleDeleteTrade(tradeId);
+                        break;
+                }
+            }
         }
     }
     private void HandlerInitializer()
@@ -59,7 +73,8 @@ public class HandleRequest
             ["/cards"] = HandleDisplayCardsFromStack,
             ["/deck"] = HandleDisplayCardsFromDeck,
             ["/stats"] = HandleDisplayUserStats,
-            
+            ["/scoreboard"] = HandleDisplayScoreboard,
+            ["/tradings"] = HandleDisplayTrades
         };
 
         _handlers["POST"] = new Dictionary<string, Func<Task>>
@@ -68,11 +83,16 @@ public class HandleRequest
             ["/users"] = HandleRegister,
             ["/packages"] = HandleCreatePackage,
             ["/transactions/package"] = HandleAcquirePackage,
-            ["/battles"] = HandleBattle
+            ["/battles"] = HandleBattle,
+            ["/tradings"] = HandleCreateTrade
         };
         _handlers["PUT"] = new Dictionary<string, Func<Task>>
         {
             ["/deck"] = HandleConfigureDeck
+        };
+        _handlers["DELETE"] = new Dictionary<string, Func<Task>>
+        {
+
         };
     }
 
@@ -305,6 +325,91 @@ public class HandleRequest
             await SendResponse("400 Bad Request", ex.Message);
         }
     }
+
+    private async Task HandleCreateTrade()
+    {
+        Console.WriteLine("Trade create request...");
+        try
+        {
+            string? token = await ReadToken();
+            if(token == null)
+                await SendResponse("400 Bad Request", "Invalid admin token.");
+            string requestBody = await ReadRequestBody();
+            // Deserialize the JSON body into the Trade model
+            var changeRequest = JsonSerializer.Deserialize<Trade>(requestBody);
+            if (changeRequest != null)
+            {
+                // Check for required properties
+                if (changeRequest.Id == Guid.Empty ||
+                    changeRequest.CardToTrade == Guid.Empty ||
+                    string.IsNullOrWhiteSpace(changeRequest.Type) ||
+                    changeRequest.MinimumDamage <= 0)
+                {
+                    await SendResponse("400 Bad Request", "Id, CardToTrade, Type, and MinimumDamage are required.");
+                    return;
+                }
+                // Create a Trade instance with the validated data
+                Trade tradeData = new Trade
+                {
+                    Id = changeRequest.Id,
+                    CardToTrade = changeRequest.CardToTrade,
+                    Type = changeRequest.Type,
+                    MinimumDamage = changeRequest.MinimumDamage
+                };
+                bool? tradeCreated = await _userService.CreateTrade(token, tradeData);
+                if(tradeCreated == null)
+                    await SendResponse("400 Bad Request", "Invalid user.");
+                else if(tradeCreated == false)
+                    await SendResponse("400 Bad Request", "Error by creating the trade.");
+                else
+                {
+                    await SendResponse("200 OK", "trade created successfully.");
+                }
+            }
+            else
+            {
+                await SendResponse("400 Bad Request", "Invalid request format.");
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            await SendResponse("400 Bad Request", e.Message);
+        }
+    }
+
+    public async Task HandleAcceptTrade(string tradeId)
+    {
+        Console.WriteLine("Package acquire request...");
+        try
+        {
+            string? token = await ReadToken();
+            if (token != null)
+            {
+                var cardId = JsonSerializer.Deserialize<string>(await ReadRequestBody());
+                if (cardId == null)
+                {
+                    await SendResponse("400 Bad Request", "Invalid request body.");
+                    return;
+                }
+                bool? tradeAccepted = await _userService.AcceptTrade(token,tradeId,cardId);
+                if(tradeAccepted == null)
+                    await SendResponse("400 Bad Request","Invalid user.");
+                else if(tradeAccepted == true)
+                    await SendResponse("200 OK", "Trade accepted successfully.");
+                else
+                    await SendResponse("400 Bad Request","Error by Accepting the trade.");
+            }
+            else
+            {
+                await SendResponse("400 Bad Request", "Unauthorized.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            await SendResponse("400 Bad Request", ex.Message);
+        }
+    }
     #endregion
 
     #region GET
@@ -447,6 +552,76 @@ public class HandleRequest
             await SendResponse("400 Bad Request", ex.Message);
         }
     }
+
+    private async Task HandleDisplayScoreboard()
+    {
+        Console.WriteLine("Scoreboard display request...");
+        try
+        {
+            string? token = await ReadToken();
+            if (token != null)
+            {
+                List<string>? scoreboard = await _userService.ShowScoreboard(token);
+                if(scoreboard == null)
+                    await SendResponse("400 Bad Request","Invalid User. ");
+                else
+                {
+                    // Serialize the cards list to JSON
+                    string json = JsonSerializer.Serialize(scoreboard, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+
+                    // Send JSON response
+                    await SendResponseWithJson("200 OK", json);
+                }
+            }
+            else
+            {
+                await SendResponse("400 Bad Request", "Unauthorized.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine(ex);
+            await SendResponse("400 Bad Request", ex.Message);
+        }
+    }
+
+    private async Task HandleDisplayTrades()
+    {
+        Console.WriteLine("Trades display request...");
+        try
+        {
+            string? token = await ReadToken();
+            if (token != null)
+            {
+                List<string>? trades = await _userService.ShowTrades(token);
+                if(trades == null)
+                    await SendResponse("400 Bad Request","Invalid User. ");
+                else
+                {
+                    // Serialize the cards list to JSON
+                    string json = JsonSerializer.Serialize(trades, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+
+                    // Send JSON response
+                    await SendResponseWithJson("200 OK", json);
+                }
+            }
+            else
+            {
+                await SendResponse("400 Bad Request", "Unauthorized.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine(ex);
+            await SendResponse("400 Bad Request", ex.Message);
+        }
+    }
     #endregion
 
     #region PUT
@@ -495,14 +670,14 @@ public class HandleRequest
             if (token != null)
             {
                 string requestBody = await ReadRequestBody();
-                var registerRequest = JsonSerializer.Deserialize<Dictionary<string, string>>(requestBody);
-                if (registerRequest != null)
+                var changeRequest = JsonSerializer.Deserialize<Dictionary<string, string>>(requestBody);
+                if (changeRequest != null)
                 {
                     List<string> userData = new();
                     // Check for required properties
-                    if (!registerRequest.TryGetValue("Name", out var nameValue) ||
-                        !registerRequest.TryGetValue("Bio", out var bioValue) ||
-                        !registerRequest.TryGetValue("Image", out var imageValue))
+                    if (!changeRequest.TryGetValue("Name", out var nameValue) ||
+                        !changeRequest.TryGetValue("Bio", out var bioValue) ||
+                        !changeRequest.TryGetValue("Image", out var imageValue))
                     {
                         await SendResponse("400 Bad Request", "Username and Password are required.");
                         return;
@@ -519,6 +694,39 @@ public class HandleRequest
                     {
                         await SendResponse("200 OK", "User data changed successfully.");
                     }
+                }
+            }
+            else
+            {
+                await SendResponse("400 Bad Request", "Unauthorized.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine(ex);
+            await SendResponse("400 Bad Request", ex.Message);
+        }
+    }
+    #endregion
+
+    #region DELETE
+
+    public async Task HandleDeleteTrade(string tradeId)
+    {
+        Console.WriteLine("User Data changing request...");
+        try
+        {
+            string? token = await ReadToken();
+            if (token != null)
+            {
+                bool? tradeDeleted = await _userService.DeleteTrade(token, tradeId);
+                if(tradeDeleted == null)
+                    await SendResponse("400 Bad Request", "Invalid user.");
+                else if(tradeDeleted == false)
+                    await SendResponse("400 Bad Request", "Error by deleting the trade.");
+                else
+                {
+                    await SendResponse("200 OK", "trade deleted successfully.");
                 }
             }
             else

@@ -107,6 +107,18 @@ public class DatabaseInitializer
                     card_id UUID REFERENCES Cards(id)
                 )";
                 command.ExecuteNonQuery();
+                // Create the trade Table
+                command.CommandText = @"
+                CREATE TABLE trades (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),                    -- Unique identifier for each trade
+                    trader_id UUID,                                       -- Foreign key referencing the user who is offering the trade
+                    offered_card_id UUID,                                 -- Foreign key referencing the card that is being offered for trade
+                    desired_card_type VARCHAR(10) CHECK (desired_card_type IN ('monster', 'spell')),  -- Type of the card the trader desires (either 'monster' or 'spell')
+                    minimum_damage_required INT,                          -- Minimum damage threshold for the offered card
+                    FOREIGN KEY (trader_id) REFERENCES users(id),    -- Foreign key constraint to the users table (trader)
+                    FOREIGN KEY (offered_card_id) REFERENCES cards(id)  -- Foreign key constraint to the userstack table (offered card)
+                );";
+                command.ExecuteNonQuery();
             }
         }
         InitializeCards();

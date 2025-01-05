@@ -1,26 +1,29 @@
 using Npgsql;
 
 namespace MCTG.Data.Repositories;
-
-public class TokenRepo : BaseRepo
+public interface ITokenRepo
+{
+    Task<bool> HasToken(Guid? userId);
+    Task AddToken(Guid? userid, string token);
+    Task<string?> GetToken(Guid? userid);
+    Task<Guid?> GetUserUid(string token);
+}
+public class TokenRepo : BaseRepo,ITokenRepo
 {
     public async Task<bool> HasToken(Guid? userId)
     {
         if (userId == null)
             return false;
-        const string searchQuery = "SELECT COUNT(1) FROM usertokens WHERE user_id = @userId AND expires_at > @currentTime";
+        const string searchQuery = "SELECT COUNT(1) FROM usertokens WHERE user_id = @userId";
         DateTime currentTime = DateTime.UtcNow;
     
         long tokenCount = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object>
         {
-            { "@userId", userId },
-            { "@currentTime", currentTime }
+            { "@userId", userId }
         });
     
         if (tokenCount > 0)
             return true;
-        
-        await DeleteToken(userId);
         return false;
     }
 
@@ -48,7 +51,7 @@ public class TokenRepo : BaseRepo
         return token;
     }
 
-    public async Task<Guid?> GerUserUid(string token)
+    public async Task<Guid?> GetUserUid(string token)
     {
         const string searchQuery = "SELECT user_id FROM usertokens WHERE token = @token";
         Guid? userUid = null;

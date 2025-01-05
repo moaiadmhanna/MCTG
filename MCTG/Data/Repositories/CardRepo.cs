@@ -1,8 +1,24 @@
 using Npgsql;
 
 namespace MCTG.Data.Repositories;
-
-public class CardRepo : BaseRepo
+public interface ICardRepo
+{
+    Task<long> GetNumberOfCards();
+    Task UpdateUserStack(string username, string cardName, bool isRemoving = false);
+    Task AddCardToPackages(Guid packageId, Guid cardId);
+    Task<List<Card>?> GetAllCardsFromPackage();
+    Task<bool> CardExists(Guid cardId);
+    Task<List<Card>> GetAllCardsFromStack(Guid? userId);
+    Task<List<Card>> GetAllCardsFromDeck(Guid? userId);
+    Task<bool> DeckConfigured(Guid? userId);
+    Task<bool> AddCardToDeck(Guid stackId, Guid? userId);
+    Task<bool> DeleteCardFromDeck(Guid stackId);
+    Task<bool> ExistsInUserStack(Guid? id);
+    Task<bool> ExistInUserDeck(Guid userStackId);
+    Task<string> GetCardName(Guid? cardId);
+    Task<bool> CardExistsInUserStack(Guid? id, Guid? userId = null);
+}
+public class CardRepo : BaseRepo,ICardRepo
 {
     private UserRepo _userRepo = new UserRepo();
     private Random _random = new Random();
@@ -12,17 +28,29 @@ public class CardRepo : BaseRepo
         return await ExecuteScalarAsync<long>(searchQuery);
     }
     
-    public async Task UpdateUserStack(string username, string cardName)
+    public async Task UpdateUserStack(string username, string? cardName,bool isRemoving = false)
     {
         Guid? cardId = await GetCardId(cardName);
         bool cardExist = await CardExistsInUserStack(cardId);
-        string updateQuery = $"UPDATE userstack SET quantity = quantity + 1 WHERE card_id = @card_id";
-        Guid? userId = await _userRepo.GetUserId(username);
+       Guid? userId = await _userRepo.GetUserId(username);
         if(userId == null)
             return;
+        string updateQuery = $"UPDATE userstack SET quantity = quantity + 1 WHERE card_id = @card_id AND user_id = @user_id";
         string insertQuery = $"INSERT INTO userstack (user_id,card_id,quantity) VALUES(@user_id,@card_id,@quantity)";
+        string deleteQuery = "DELETE FROM userstack WHERE card_id = @card_id AND user_id = @user_id";
+
+        if (isRemoving)
+        {
+            int currentQuantity = await GetCurrentQuantity(cardId, userId);
+            updateQuery = $"UPDATE userstack SET quantity = quantity - 1 WHERE card_id = @card_id";
+            if (currentQuantity > 0)
+                await ExecuteNonQueryAsync(updateQuery, new Dictionary<string, object> { { "@card_id", cardId },{"user_id",userId} });
+            else
+                await ExecuteNonQueryAsync(deleteQuery, new Dictionary<string, object> {{ "@card_id", cardId },{"user_id",userId}});
+            return;
+        }
         if (cardExist)
-            await ExecuteNonQueryAsync(updateQuery, new Dictionary<string, object> { { "@card_id", cardId } });
+            await ExecuteNonQueryAsync(updateQuery, new Dictionary<string, object> { { "@card_id", cardId } ,{"user_id",userId}});
         else
             await ExecuteNonQueryAsync(insertQuery, new Dictionary<string, object> { {"user_id",userId},{ "@card_id", cardId }, {"quantity", 1}});
     }
@@ -154,7 +182,12 @@ public class CardRepo : BaseRepo
             return false;
         }
     }
-
+    public async Task<bool> ExistsInUserStack(Guid? id)
+    {
+        const string searchQuery = "SELECT COUNT(1) FROM userstack WHERE id = @id";
+        long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "id", id } });
+        return count > 0;
+    }
     private async Task UpdateCardQuantity(Guid id)
     {
         const string updateQuery = "UPDATE cards SET quantity = quantity - 1 WHERE id = @id";
@@ -185,11 +218,21 @@ public class CardRepo : BaseRepo
         return id;
     }
 
-    private async Task<bool> CardExistsInUserStack(Guid? id)
+    public async Task<bool> CardExistsInUserStack(Guid? id, Guid? userId = null)
     {
-        const string searchQuery = "SELECT COUNT(1) FROM userstack WHERE card_id = @id";
-        long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "id", id } });
-        return count > 0;
+        string searchQuery;
+        if (userId == null)
+        {
+            searchQuery = "SELECT COUNT(1) FROM userstack WHERE card_id = @id";
+            long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "id", id } });
+            return count > 0;
+        }
+        else
+        {
+            searchQuery = "SELECT COUNT(1) FROM userstack WHERE card_id = @id AND user_id = @userId";
+            long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "id", id },{"userId",userId}});
+            return count > 0;
+        }
     }
 
     private Card CardFromReader(NpgsqlDataReader reader)
@@ -208,10 +251,41 @@ public class CardRepo : BaseRepo
         return new SpellCard(name, damage, element);
     }
 
-    private async Task<bool> ExistInUserDeck(Guid userStackId)
+    public async Task<bool> ExistInUserDeck(Guid userStackId)
     {
         const string searchQuery = "SELECT COUNT(1) FROM userdeck WHERE user_stack_id = @userStackId";
         long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "userStackId", userStackId } });
         return count > 0;
     }
+    private async Task<int> GetCurrentQuantity(Guid? cardId, Guid? userId)
+    {
+        if (cardId == null || userId == null)
+            return 0;
+        const string query = "SELECT quantity FROM userstack WHERE card_id = @card_id AND user_id = @user_id";
+        int quantity = 0;
+        await ExecuteReaderAsync(query, async reader =>
+        {
+            quantity = reader.GetInt32(reader.GetOrdinal("quantity"));
+        }, new Dictionary<string, object>
+        {
+            { "@card_id", cardId },
+            { "@user_id", userId }
+        });
+        return quantity;
+    }
+    public async Task<string?> GetCardName(Guid? cardId)
+    {
+        if (cardId == null) return null;
+
+        const string query = "SELECT name FROM cards WHERE id = @card_id";
+        string cardName = null;
+
+        await ExecuteReaderAsync(query, async reader =>
+        {
+                cardName = reader.GetString(reader.GetOrdinal("name"));
+        }, new Dictionary<string, object>{{ "@card_id", cardId }});
+
+        return cardName; // Returns null if no card is found, otherwise returns the card name.
+    }
+
 }

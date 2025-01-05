@@ -48,7 +48,6 @@ public class PackageService
             return false;
         }
     }
-
     public async Task<bool> CreatePackage(List<Guid> cardIds)
     {
         try
@@ -80,7 +79,7 @@ public class PackageService
     }
     private async Task<User?> GetUser(string token)
     {
-        Guid? userId = await _tokenRepo.GerUserUid(token);
+        Guid? userId = await _tokenRepo.GetUserUid(token);
         if (userId == null)
             return null;
         return await _userRepo.GetUser(userId);
