@@ -380,7 +380,7 @@ public class HandleRequest
 
     public async Task HandleAcceptTrade(string tradeId)
     {
-        Console.WriteLine("Package acquire request...");
+        Console.WriteLine("Accept trade request...");
         try
         {
             string? token = await ReadToken();
