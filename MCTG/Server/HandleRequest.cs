@@ -82,7 +82,7 @@ public class HandleRequest
             ["/sessions"] = HandleLogin,
             ["/users"] = HandleRegister,
             ["/packages"] = HandleCreatePackage,
-            ["/transactions/package"] = HandleAcquirePackage,
+            ["/transactions/packages"] = HandleAcquirePackage,
             ["/battles"] = HandleBattle,
             ["/tradings"] = HandleCreateTrade
         };
@@ -253,7 +253,7 @@ public class HandleRequest
         try
         {
             string? adminToken = await ReadToken();
-            if(adminToken == null || adminToken != "XxImjATrx/4XAB4sZuXeDCKtUB0Uglye1yYF/KifzBs=")
+            if(adminToken == null || adminToken != "jzJBvuMWdlOUSw1zBD5oIVIhXyigycAt8rNAQhErOPw=")
                 await SendResponse("400 Bad Request", "Invalid admin token.");
             var packageIds = JsonSerializer.Deserialize<List<Guid>>(await ReadRequestBody());
             if (packageIds == null)
@@ -262,7 +262,7 @@ public class HandleRequest
                 return;
             }
             if(await _packageService.CreatePackage(packageIds))
-                await SendResponse("200 OK","Package created successfully.");
+                await SendResponse("201 OK","Package created successfully.");
             else
                 await SendResponse("400 Bad Request", "Package could not be created.");
             
@@ -281,13 +281,13 @@ public class HandleRequest
             string? token = await ReadToken();
             if (token != null)
             {
-                bool? packagePurchased = await _packageService.AcquirePackage(token);
+                string? packagePurchased = await _packageService.AcquirePackage(token);
                 if(packagePurchased == null)
                     await SendResponse("400 Bad Request","Invalid user.");
-                else if(packagePurchased == true)
-                    await SendResponse("200 OK", "Package acquired successfully.");
+                else if(packagePurchased == "Package acquired successfully")
+                    await SendResponse("200 OK", packagePurchased);
                 else
-                    await SendResponse("400 Bad Request","Not enough Money.");
+                    await SendResponse("400 Bad Request",packagePurchased);
             }
             else
             {

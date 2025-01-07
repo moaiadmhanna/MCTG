@@ -46,7 +46,9 @@ public class DatabaseInitializer
                     password_salt BYTEA NOT NULL,
                     coins INT DEFAULT 20,
                     elo INT DEFAULT 100,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    bio VARCHAR(100) DEFAULT 'Me Playing...',
+                    image VARCHAR(50) DEFAULT ':--)'
                 )
                 ";
                 command.ExecuteNonQuery();

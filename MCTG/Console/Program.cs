@@ -19,8 +19,5 @@ class Program
         //db.InitializeDB();
         HttpServer server = new HttpServer(IPAddress.Any, 10001);
         await server.Listen();
-        //Testing the DB Initializer
-            // DatabaseInitializer db = new DatabaseInitializer();
-            // db.InitializeDB();
     }
 }

@@ -111,7 +111,7 @@ public class UserService
         Guid? userId = await _tokenRepo.GetUserUid(token);
         if (userId == null)
             return null;
-        if (!await _cardRepo.CardExistsInUserStack(tradeData.CardToTrade,userId) || await _cardRepo.ExistInUserDeck(tradeData.Id))
+        if (!await _cardRepo.CardExistsInUserStack(tradeData.CardToTrade,userId) || await _cardRepo.ExistInUserDeck(await _cardRepo.GetUserStackID(tradeData.CardToTrade,userId)))
             return false;
         return await _tradeRepo.CreateTrade(userId, tradeData);
     }

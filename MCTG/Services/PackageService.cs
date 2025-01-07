@@ -11,7 +11,7 @@ public class PackageService
     private UserRepo _userRepo = new UserRepo();
     private TokenRepo _tokenRepo = new TokenRepo();
 
-    public async Task<bool?> AcquirePackage(string token)
+    public async Task<string?> AcquirePackage(string token)
     {
         User? user = await GetUser(token);
         if (user == null)
@@ -23,7 +23,7 @@ public class PackageService
             {
                 List<Card>? packageCards = await _cardRepo.GetAllCardsFromPackage();
                 if (packageCards == null)
-                    return false;
+                    return "No available Packages";
                 for (int cardCount = 0; cardCount < PackageSize; cardCount++)
                 {
                     Card newCard = packageCards[cardCount];
@@ -38,14 +38,14 @@ public class PackageService
             else
             {
                 Console.WriteLine($"User {username} does not have enough Coins");
-                return false;
+                return "Not enough Money";
             }
 
-            return true;
+            return "Package acquired successfully";
         }
         catch (Exception e)
         {
-            return false;
+            return "Error by acquiring the package";
         }
     }
     public async Task<bool> CreatePackage(List<Guid> cardIds)

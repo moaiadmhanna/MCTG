@@ -14,9 +14,10 @@ public interface ICardRepo
     Task<bool> AddCardToDeck(Guid stackId, Guid? userId);
     Task<bool> DeleteCardFromDeck(Guid stackId);
     Task<bool> ExistsInUserStack(Guid? id);
-    Task<bool> ExistInUserDeck(Guid userStackId);
+    Task<bool> ExistInUserDeck(Guid? userStackId);
     Task<string> GetCardName(Guid? cardId);
     Task<bool> CardExistsInUserStack(Guid? id, Guid? userId = null);
+    Task<Guid?> GetUserStackID(Guid cardId, Guid? userId);
 }
 public class CardRepo : BaseRepo,ICardRepo
 {
@@ -196,9 +197,16 @@ public class CardRepo : BaseRepo,ICardRepo
 
     private async Task<Guid?> GetRandomPackage()
     {
-        string searchQuery = $"SELECT package_id FROM packages ORDER BY RANDOM() LIMIT 1";
-        Guid? packageId = await ExecuteScalarAsync<Guid>(searchQuery);
-        return packageId;
+        try
+        {
+            string searchQuery = $"SELECT package_id FROM packages ORDER BY RANDOM() LIMIT 1";
+            Guid? packageId = await ExecuteScalarAsync<Guid>(searchQuery);
+            return packageId;
+        }
+        catch (Exception ex)
+        {
+            return null;
+        }
     }
 
     private async Task DeletePackage(Guid? packageID)
@@ -251,7 +259,7 @@ public class CardRepo : BaseRepo,ICardRepo
         return new SpellCard(name, damage, element);
     }
 
-    public async Task<bool> ExistInUserDeck(Guid userStackId)
+    public async Task<bool> ExistInUserDeck(Guid? userStackId)
     {
         const string searchQuery = "SELECT COUNT(1) FROM userdeck WHERE user_stack_id = @userStackId";
         long count = await ExecuteScalarAsync<long>(searchQuery, new Dictionary<string, object> { { "userStackId", userStackId } });
@@ -288,4 +296,14 @@ public class CardRepo : BaseRepo,ICardRepo
         return cardName; // Returns null if no card is found, otherwise returns the card name.
     }
 
+    public async Task<Guid?> GetUserStackID(Guid cardId, Guid? userId)
+    {
+        const string query = "SELECT id FROM userstack WHERE user_id = @userId AND card_id = @cardId";
+        Guid? stackID = null;
+        await ExecuteReaderAsync(query, async reader =>
+        {
+            stackID = reader.GetGuid(reader.GetOrdinal("id"));
+        },new Dictionary<string, object> { { "userId", userId }, { "cardId", cardId } });
+        return stackID;
+    }
 }
